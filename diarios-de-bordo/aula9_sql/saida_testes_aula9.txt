@@ -1,0 +1,25 @@
+You are now connected to database "petly_club" as user "postgres".
+[TESTE 01] CPF repetido (UNIQUE)
+psql:/tmp/testes_aula9.sql:3: ERROR:  duplicate key value violates unique constraint "cliente_cpf_key"
+DETAIL:  Key (cpf)=(12345678901) already exists.
+[TESTE 02] Pedido de cliente inexistente (FOREIGN KEY)
+psql:/tmp/testes_aula9.sql:5: ERROR:  insert or update on table "pedido" violates foreign key constraint "fk_pedido_cliente"
+DETAIL:  Key (id_cliente)=(999) is not present in table "cliente".
+[TESTE 03a] Produto com preco zero (CHECK)
+psql:/tmp/testes_aula9.sql:7: ERROR:  new row for relation "produto" violates check constraint "ck_produto_preco"
+DETAIL:  Failing row contains (3, Petisco Dental, null, Marca C, null, 0.00, 0, f, 1).
+[TESTE 03b] Venda na loja fisica sem funcionario (CHECK)
+psql:/tmp/testes_aula9.sql:9: ERROR:  new row for relation "pedido" violates check constraint "ck_pedido_func"
+DETAIL:  Failing row contains (4, 2026-10-26 16:23:16.448712, loja fisica, balcao, pendente, 0.00, 1, null).
+[TESTE 03c] Produto sem categoria (NOT NULL)
+psql:/tmp/testes_aula9.sql:11: ERROR:  null value in column "id_categoria" of relation "produto" violates not-null constraint
+DETAIL:  Failing row contains (4, Coleira P, null, Marca D, null, 39.90, 0, f, null).
+[TESTE 04] Mesmo produto duas vezes no mesmo pedido (PK composta)
+psql:/tmp/testes_aula9.sql:13: ERROR:  duplicate key value violates unique constraint "pk_item_pedido"
+DETAIL:  Key (id_pedido, id_produto)=(1, 1) already exists.
+[CONFERENCIA] Nada foi gravado pelos testes
+ clientes | pedidos | produtos | itens 
+----------+---------+----------+-------
+        2 |       2 |        2 |     3
+(1 row)
+

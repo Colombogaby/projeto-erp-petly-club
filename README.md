@@ -1,9 +1,10 @@
 # Projeto ERP — Petly Club
 
-Primeira entrega do Projeto Integrador da disciplina **Modelagem de Banco de Dados** (UNICID, 2026/2): do problema real ao modelo conceitual de dados.
+Primeira entrega do Projeto Integrador da disciplina **Modelagem de Banco de Dados** (UNICID, 2026/2): do problema real ao modelo conceitual de dados. **Versão revisada após a devolutiva do professor** (veja [Revisão após a devolutiva](#revisão-após-a-devolutiva)).
 
 ## Sumário
 
+- [Revisão após a devolutiva](#revisão-após-a-devolutiva)
 1. [Identificação da equipe](#1-identificação-da-equipe)
 2. [Caracterização da empresa](#2-caracterização-da-empresa)
 3. [Justificativa da escolha](#3-justificativa-da-escolha)
@@ -20,9 +21,26 @@ Primeira entrega do Projeto Integrador da disciplina **Modelagem de Banco de Dad
 14. [Cardinalidades](#14-cardinalidades)
 15. [Dicionário de dados conceitual](#15-dicionário-de-dados-conceitual)
 16. [DER](#16-der)
-17. [Justificativas técnicas](#17-justificativas-técnicas)
+17. [Justificativas técnicas](#17-justificativas-técnicas) — inclui [17.1 Cenários de teste](#171-validação-do-modelo-com-cenários-de-teste)
 18. [Conclusão](#18-conclusão)
 - [Uso de Inteligência Artificial](#uso-de-inteligência-artificial)
+
+## Revisão após a devolutiva
+
+Esta versão corrige os pontos apontados na devolutiva da primeira entrega (nota 7,5). As mudanças de decisão de modelagem estão registradas no formato sugerido pelo manual da entrega final.
+
+| O que foi alterado | Como era | Como ficou | Por que alteramos | Onde está |
+|---|---|---|---|---|
+| Histórico de estoque (ponto 1) | A quantidade ficava gravada no estoque e era sobrescrita a cada venda ou recebimento; "movimentação de estoque" estava entre os itens que não viraram entidade | Nova entidade MOVIMENTACAO_ESTOQUE registra entradas, reservas, liberações, vendas, devoluções, perdas e ajustes; os saldos do lote são derivados dela, e os registros não podem ser alterados nem excluídos | Sem histórico não era possível explicar diferenças, perdas e devoluções | RN19, RP11, RF33, RF35; seções 5 e 11 a 17; fluxograma 5 |
+| Lote de cada venda (ponto 2) | Entidade ESTOQUE com a quantidade por lote, sem ligação com as vendas | ESTOQUE virou LOTE, e cada venda gera uma movimentação por lote utilizado, ligada ao item do pedido | Era preciso saber de qual lote saiu cada unidade, principalmente com validades diferentes | RN20, RF09; cenário 2 |
+| Reserva e cancelamento (ponto 3) | A loja virtual dava baixa no pagamento e o cancelamento só "devolvia ao estoque" | A loja virtual reserva no pedido e dá baixa no envio ou na retirada; o cancelamento libera a reserva ou registra devolução ou perda | Produto reservado ainda não saiu do estoque; só o que foi baixado pode ser devolvido | RN21, RN22, RF16, RF20, RF21; fluxogramas 2, 3, 4 e 12; cenários 7 e 8 |
+| Pagamento das contas a pagar (ponto 4) | CONTA_PAGAR com um único campo data_pagamento | Nova entidade PAGAMENTO_CONTA (CONTA_PAGAR 1:N PAGAMENTO_CONTA); valor pago derivado; status "paga parcialmente" | Uma parcela pode ser paga em mais de uma vez sem perder o histórico | RN23, RF36; cenário 5 |
+| Contas a receber (ponto 5) | PAGAMENTO registrava a venda como paga; contas a receber não eram entidade | PAGAMENTO registra a autorização; nova entidade CONTA_RECEBER (PAGAMENTO 1:N CONTA_RECEBER) com data prevista, data do recebimento e valor líquido; crédito em até 3x | Venda autorizada no cartão não é dinheiro em caixa; o fluxo de caixa precisa separar autorizado, recebido e pendente | RN24, RF25, RF26, RF37; fluxogramas 8 e 9; cenário 6 |
+| Compra recebida em partes (parecer) | ITEM_COMPRA só com a quantidade comprada | ITEM_COMPRA com quantidade_comprada e quantidade_recebida (derivada das entradas); compra com status "recebida parcialmente" | O fornecedor pode entregar uma compra em mais de uma vez | RN25, RF34; fluxograma 7; cenário 4 |
+| Requisitos não funcionais (ponto 6) | "Tempo adequado", "busca rápida" e "funcionamento contínuo" | Critérios mensuráveis e forma de verificação em todos os RNF; novo RNF10 para vendas simultâneas | Requisito que não pode ser medido não pode ser testado | Seção 7; cenário 1 |
+| Documentação (ponto 7) | Uma página por etapa, em arquivos separados | Toda a documentação em um único PDF, na ordem deste README, com os diários em anexo | Pedido da devolutiva | [`docs/Documentacao_Completa_Grupo7.pdf`](docs/Documentacao_Completa_Grupo7.pdf) |
+| Diários de bordo (ponto 8) | Versão reescrita para ficar alinhada ao modelo final | Diários preenchidos em sala, digitalizados sem alteração, com um resumo da evolução do projeto e da participação | Os registros precisam mostrar o que foi feito em cada aula | [`diarios-de-bordo/`](diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf) |
+| Validação do modelo (parecer) | Modelo não testado com situações reais | Oito cenários de teste: vendas simultâneas, lotes com validades diferentes, produto vencido, compra recebida em partes, pagamento parcial, crédito em 3x e dois tipos de cancelamento | Recomendação do parecer formativo | Seção 17.1 |
 
 ## 1. Identificação da equipe
 
@@ -94,11 +112,12 @@ Com isso, a empresa possui as informações de que precisa, mas elas estão espa
 
 - Clientes e endereços de entrega dos pedidos da loja virtual;
 - Produtos, categorias e preços;
-- Quantidade disponível em estoque e validade dos produtos alimentícios;
+- Quantidade disponível em estoque, por lote, e validade dos produtos alimentícios;
+- Histórico das movimentações de estoque: entradas, vendas, devoluções, perdas e ajustes;
 - Vendas de cada canal e os produtos vendidos em cada uma;
-- Formas de pagamento;
+- Formas de pagamento, incluindo cartão de crédito em até 3x sem juros;
 - Fornecedores e compras realizadas;
-- Contas a pagar e a receber.
+- Contas a pagar e a receber, separando o que já foi pago ou recebido do que ainda está pendente.
 
 ## 3. Justificativa da escolha
 
@@ -122,8 +141,12 @@ A Petly Club foi escolhida por reunir, em um negócio de fácil compreensão, as
 |---|---|---|
 | Produtos e clientes são cadastrados separadamente no sistema da loja física e na plataforma da loja virtual | Gera cadastros duplicados | Cadastro único de clientes e produtos para os dois canais |
 | O estoque, que é compartilhado pelos dois canais, é controlado em uma planilha atualizada manualmente | Gera informações desatualizadas e risco de vender produtos sem estoque | Estoque único atualizado automaticamente a cada venda e recebimento |
+| A planilha guarda apenas o saldo atual de cada produto, sem registrar as entradas, saídas, perdas, devoluções e ajustes | Não é possível explicar diferenças de estoque, identificar perdas nem saber de qual lote saiu cada venda | Histórico de todas as movimentações de estoque, por lote |
+| Pedidos da loja virtual e vendas do caixa disputam o mesmo produto sem nenhuma reserva | Um produto pode ser vendido no caixa enquanto já está prometido a um pedido online | Reserva dos produtos dos pedidos da loja virtual até o envio ou a retirada |
 | As vendas da loja física e virtual funcionam de forma separada e não se comunicam com as outras planilhas | Informações necessárias ao negócio ficam espalhadas e isoladas | Registro de todas as vendas em um único sistema, identificando o canal |
 | O setor financeiro realiza a consolidação dos valores do caixa e das vendas online de forma manual ao final do dia | Retrabalho diário devido à ausência de um sistema integrado e dependência de controles isolados | Integração entre vendas, pagamentos e contas a pagar, com fechamento de caixa automático |
+| O financeiro não diferencia uma venda aprovada no cartão do dinheiro que efetivamente entrou na conta, principalmente no crédito parcelado | O fluxo de caixa fica impreciso e não é possível saber quanto ainda falta receber | Contas a receber com data prevista e data do recebimento efetivo |
+| As parcelas devidas aos fornecedores são controladas em planilha, sem registro dos pagamentos feitos | Pagamentos parciais se perdem e o histórico financeiro fica incompleto | Registro de cada pagamento feito em cada parcela |
 | As decisões de compras são baseadas na conferência manual das prateleiras e em planilhas de fornecedores | Sem automatização, exigindo controle manual para identificar a necessidade de reposição de mercadorias | Alerta de estoque mínimo e registro das compras por fornecedor |
 | A validade dos produtos alimentícios não é controlada de forma sistemática | Risco de manter produtos vencidos disponíveis para venda | Registro de lote e validade na entrada e bloqueio da venda de produtos vencidos |
 | Informações espalhadas em sistemas separados e operadas com controles isolados por cada setor | Dificuldade de acompanhar os resultados financeiros e o desempenho das vendas | Relatórios integrados de vendas por produto, categoria e canal |
@@ -132,53 +155,53 @@ A Petly Club foi escolhida por reunir, em um negócio de fácil compreensão, as
 
 ### 1. Venda na loja física
 
-Cliente → Verificar o cadastro → Escolhe produtos → Atendente registra o pedido → Caixa recebe o pagamento (por Pix, cartão de crédito/débito ou dinheiro) → Atualização do estoque
+Cliente → Verificar o cadastro → Escolhe produtos → Atendente registra o pedido → Caixa recebe o pagamento (por Pix, cartão de crédito/débito ou dinheiro) → Baixa no estoque, por lote
 
 - **Quem participa** - Cliente, atendente ou operador de caixa e funcionário do estoque.
 - **O que inicia o processo** - O cliente escolhe um ou mais produtos na loja física.
-- **O que acontece** - Verifica-se se o cliente possui cadastro; se tiver, segue para a compra, e se não tiver, o cliente é cadastrado na hora (RP02). Os produtos e suas quantidades são registrados no pedido pelo funcionário responsável (RN14), o pagamento é realizado e a quantidade disponível é reduzida no estoque.
-- **Qual informação é gerada** - Cliente, funcionário responsável, pedido, produtos vendidos, quantidades, preços praticados, forma de pagamento e canal de venda.
-- **Qual é o resultado** - Venda registrada, pagamento recebido e estoque atualizado.
+- **O que acontece** - Verifica-se se o cliente possui cadastro; se tiver, segue para a compra, e se não tiver, o cliente é cadastrado na hora (RP02). Os produtos e suas quantidades são registrados no pedido pelo funcionário responsável (RN14), o pagamento é autorizado e, ao concluir a venda, o sistema dá baixa no estoque registrando uma movimentação de venda para cada lote utilizado, começando pelo lote de validade mais próxima (RN20, RN21).
+- **Qual informação é gerada** - Cliente, funcionário responsável, pedido, produtos vendidos, quantidades, preços praticados, lotes de onde saíram os produtos, forma de pagamento e canal de venda.
+- **Qual é o resultado** - Venda registrada, pagamento autorizado e estoque atualizado com o histórico da saída.
 
 ### 2. Venda na loja virtual
 
-Cliente → Cadastra → Acessa a loja virtual → Seleciona produtos → Realiza o pedido → Efetua o pagamento (por Pix ou cartão de crédito/débito) → Pagamento confirmado (pagamento não confirmado resulta em cancelamento da compra) → Baixa no estoque → Pedido é separado
+Cliente → Cadastra → Acessa a loja virtual → Seleciona produtos → Realiza o pedido → Produtos são reservados → Efetua o pagamento (por Pix ou cartão de crédito/débito) → Pagamento confirmado (pagamento não confirmado libera a reserva e cancela o pedido) → Pedido é separado
 
 - **Quem participa** - Cliente, funcionário responsável pelos pedidos virtuais, estoque e financeiro.
 - **O que inicia o processo** - O cliente acessa a loja virtual e seleciona os produtos.
-- **O que acontece** - O cliente realiza o pedido, escolhe a forma de recebimento (entrega ou retirada), informa o endereço quando escolhe entrega e efetua o pagamento. Com o pagamento confirmado, o estoque é atualizado e os produtos são separados. Se o pagamento não for confirmado, o pedido é cancelado.
-- **Qual informação é gerada** - Dados do cliente, endereço de entrega, pedido, itens, quantidades, preços, pagamento, status e canal de venda.
-- **Qual é o resultado** - Pedido online registrado, pago e preparado para entrega ou retirada.
+- **O que acontece** - O cliente realiza o pedido, escolhe a forma de recebimento (entrega ou retirada) e informa o endereço quando escolhe entrega. Ao registrar o pedido, o sistema reserva as quantidades em lotes específicos, que deixam de estar disponíveis para outras vendas (RN21). Com o pagamento confirmado, os produtos são separados; se o pagamento não for confirmado, a reserva é liberada e o pedido é cancelado (RN22).
+- **Qual informação é gerada** - Dados do cliente, endereço de entrega, pedido, itens, quantidades, preços, lotes reservados, pagamento, status e canal de venda.
+- **Qual é o resultado** - Pedido online registrado, pago, com os produtos reservados e preparado para entrega ou retirada.
 
 ### 3. Entrega do pedido
 
-Pedido online → Produtos são separados → Pedido é conferido → Pedido é enviado → Entrega é confirmada
+Pedido online → Produtos são separados → Pedido é conferido → Pedido é enviado → Baixa no estoque → Entrega é confirmada
 
 - **Quem participa** - Funcionário da loja virtual, funcionário do estoque, responsável pela entrega e cliente.
 - **O que inicia o processo** - A confirmação de um pedido online com entrega em domicílio.
-- **O que acontece** - Os produtos são separados, conferidos e encaminhados para entrega. Quando o cliente recebe, a entrega é confirmada.
-- **Qual informação é gerada** - Endereço de entrega, data prevista, data da entrega e status do pedido e da entrega.
-- **Qual é o resultado** - Produtos entregues ao cliente e pedido finalizado.
+- **O que acontece** - Os produtos são separados, conferidos e encaminhados para entrega. No envio, a reserva é convertida em baixa: o sistema registra a movimentação de venda de cada lote reservado (RN21). Quando o cliente recebe, a entrega é confirmada.
+- **Qual informação é gerada** - Endereço de entrega, data prevista, data da entrega, movimentações de venda e status do pedido e da entrega.
+- **Qual é o resultado** - Produtos entregues ao cliente, estoque baixado e pedido finalizado.
 
 ### 4. Retirada do pedido na loja
 
-Pedido online → Produtos são separados → Pedido fica disponível → Cliente vai à loja → Funcionário confere o código do pedido → Funcionário entrega o pedido
+Pedido online → Produtos são separados → Pedido fica disponível → Cliente vai à loja → Funcionário confere o código do pedido → Funcionário entrega o pedido → Baixa no estoque
 
 - **Quem participa** - Cliente, funcionário da loja virtual, atendente e estoquista.
 - **O que inicia o processo** - O cliente escolhe a opção de retirada na loja.
-- **O que acontece** - Os produtos são separados e o pedido fica disponível para retirada. O cliente comparece à loja, o funcionário confere o código do pedido e entrega os produtos.
-- **Qual informação é gerada** - Pedido, código do pedido, produtos separados, opção de retirada e status do pedido.
-- **Qual é o resultado** - Pedido retirado pelo cliente e processo de venda concluído.
+- **O que acontece** - Os produtos são separados e continuam reservados até a retirada. O cliente comparece à loja, o funcionário confere o código do pedido e entrega os produtos; nesse momento, a reserva é convertida em baixa no estoque (RN21).
+- **Qual informação é gerada** - Pedido, código do pedido, produtos separados, opção de retirada, movimentações de venda e status do pedido.
+- **Qual é o resultado** - Pedido retirado pelo cliente, estoque baixado e processo de venda concluído.
 
 ### 5. Controle de estoque
 
-Venda ou recebimento de mercadoria → Estoque é movimentado → Quantidade é conferida → Validade dos lotes é acompanhada → Saldo é atualizado
+Ocorrência no estoque (entrada, reserva, venda, devolução, perda ou ajuste) → Movimentação é registrada no lote → Saldo do lote é recalculado → Validade dos lotes é acompanhada → Estoque mínimo é verificado
 
 - **Quem participa** - Estoquista, atendente, funcionário da loja virtual e gerência.
-- **O que inicia o processo** - Uma venda, o recebimento de produtos ou uma conferência do estoque.
-- **O que acontece** - As entradas e saídas são registradas, as quantidades são conferidas e a validade dos lotes dos produtos com controle de validade é acompanhada. Produtos vencidos são retirados da venda (RP09).
-- **Qual informação é gerada** - Produto, lote, quantidade disponível e validade.
-- **Qual é o resultado** - Estoque atualizado e produtos disponíveis para os dois canais de venda.
+- **O que inicia o processo** - Uma venda, um pedido da loja virtual, o recebimento de produtos, um cancelamento, uma perda (produto vencido ou danificado) ou uma conferência do estoque.
+- **O que acontece** - Toda alteração de quantidade é registrada como uma movimentação do lote, com tipo, quantidade, data, hora, responsável e motivo (RN19). As movimentações não são apagadas: correções são feitas por novos ajustes. Lotes vencidos são retirados da venda por movimentação de perda (RP09), e perdas e ajustes precisam de autorização da gerência (RP11).
+- **Qual informação é gerada** - Lote, tipo de movimentação, quantidade, data e hora, responsável, motivo, saldo físico, quantidade reservada e quantidade disponível.
+- **Qual é o resultado** - Estoque atualizado, com o histórico completo de cada lote, e produtos disponíveis para os dois canais de venda.
 
 ### 6. Reposição de mercadorias
 
@@ -192,33 +215,33 @@ Estoque atinge o nível mínimo → Gerência identifica a necessidade → Forne
 
 ### 7. Recebimento de mercadorias
 
-Fornecedor entrega mercadorias → Funcionário autorizado recebe → Produtos são conferidos → Verificar registro do lote e validade → Produtos são armazenados → Estoque é atualizado
+Fornecedor entrega mercadorias → Funcionário autorizado recebe → Produtos são conferidos com a compra → Verificar registro do lote e validade → Movimentação de entrada é registrada → Compra recebida por completo? (não: fica recebida parcialmente e aguarda nova entrega)
 
 - **Quem participa** - Fornecedor, funcionário autorizado do estoque e setor de compras.
-- **O que inicia o processo** - A chegada das mercadorias entregues pelo fornecedor.
-- **O que acontece** - Os produtos recebidos são conferidos com a compra e armazenados. Somente funcionários autorizados registram a entrada (RP06). Para produtos com controle de validade, o lote e a data de validade são registrados (RN11).
-- **Qual informação é gerada** - Fornecedor, compra, produtos recebidos, quantidades, lote, validade e data de entrada.
-- **Qual é o resultado** - Mercadorias armazenadas e saldo do estoque atualizado.
+- **O que inicia o processo** - A chegada das mercadorias entregues pelo fornecedor, em uma ou mais entregas.
+- **O que acontece** - Os produtos recebidos são conferidos com a compra e armazenados. Somente funcionários autorizados registram a entrada (RP06). Para produtos com controle de validade, o lote e a data de validade são registrados (RN11). Cada entrega gera movimentações de entrada ligadas ao item da compra; se a quantidade recebida for menor que a comprada, a compra fica como recebida parcialmente até as próximas entregas (RN25).
+- **Qual informação é gerada** - Fornecedor, compra, produtos recebidos, quantidade comprada, quantidade recebida, lote, validade e data de entrada.
+- **Qual é o resultado** - Mercadorias armazenadas, saldo do estoque atualizado e situação da compra conhecida.
 
 ### 8. Pagamento da venda
 
-Pedido registrado → Cliente escolhe a forma de pagamento (por Pix, cartão de crédito/débito ou dinheiro) → Pagamento é processado → Valor é registrado → Venda é confirmada
+Pedido registrado → Cliente escolhe a forma de pagamento (por Pix, cartão de crédito em até 3x, débito ou dinheiro) → Pagamento é autorizado → Contas a receber são geradas → Venda é confirmada
 
 - **Quem participa** - Cliente, operador de caixa ou plataforma da loja virtual e financeiro.
 - **O que inicia o processo** - A finalização de um pedido na loja física ou virtual.
-- **O que acontece** - O cliente escolhe uma ou mais formas de pagamento (RN15), o valor é processado e a venda é confirmada. Descontos acima do limite precisam de autorização da gerência (RP05).
-- **Qual informação é gerada** - Forma de pagamento, valor recebido, desconto, pedido relacionado e status do pagamento.
-- **Qual é o resultado** - Pagamento registrado e venda confirmada.
+- **O que acontece** - O cliente escolhe uma ou mais formas de pagamento (RN15) e o pagamento é autorizado. A autorização gera as contas a receber: uma para dinheiro, Pix ou débito, e uma por parcela no crédito parcelado em até 3x (RN24). O valor só é considerado recebido quando entra na conta da empresa. Descontos acima do limite precisam de autorização da gerência (RP05).
+- **Qual informação é gerada** - Forma de pagamento, valor autorizado, número de parcelas, desconto, pedido relacionado, status do pagamento e contas a receber com data prevista.
+- **Qual é o resultado** - Pagamento autorizado, valores a receber registrados e venda confirmada.
 
 ### 9. Controle financeiro
 
-Vendas e compras são registradas → Valores são conferidos → Contas a receber e a pagar são controladas → Caixa é fechado → Resultado é consolidado
+Contas a receber e a pagar são registradas → Recebimentos efetivos são conciliados → Pagamentos aos fornecedores são registrados (inclusive parciais) → Caixa é fechado → Fluxo de caixa é consolidado
 
 - **Quem participa** - Financeiro, operador de caixa e gerência.
-- **O que inicia o processo** - O registro de uma venda, compra ou pagamento.
-- **O que acontece** - O financeiro controla os valores recebidos das vendas e as parcelas devidas aos fornecedores, e consolida as vendas da loja física e da loja virtual.
-- **Qual informação é gerada** - Contas a pagar, pagamentos recebidos e pendentes, valores do caixa e valores das vendas online.
-- **Qual é o resultado** - Fechamento do caixa e informações financeiras consolidadas.
+- **O que inicia o processo** - Uma venda autorizada, uma compra, o vencimento de uma parcela ou o recebimento de valores da operadora de cartão.
+- **O que acontece** - O financeiro confere quais valores autorizados já entraram na conta (recebidos) e quais ainda estão pendentes. Uma parcela devida ao fornecedor pode ser paga em um ou mais pagamentos; ela só fica quitada quando a soma dos pagamentos atinge o seu valor (RN23). O fechamento do caixa considera apenas os valores efetivamente recebidos.
+- **Qual informação é gerada** - Contas a receber pendentes e recebidas, contas a pagar com os pagamentos feitos e o saldo devedor, valores do caixa e fluxo de caixa previsto e realizado.
+- **Qual é o resultado** - Fechamento do caixa e informações financeiras consolidadas, separando o que foi autorizado, o que foi recebido e o que ainda está pendente.
 
 ### 10. Cadastro de produtos
 
@@ -242,13 +265,13 @@ Cliente realiza uma compra → Dados são informados → Cadastro é realizado �
 
 ### 12. Cancelamento de pedido
 
-Solicitação de cancelamento → Verificação da regra de cancelamento → Autorização (quando necessária) → Pedido é cancelado → Produtos voltam ao estoque
+Solicitação de cancelamento → Verificação da regra de cancelamento → Autorização (quando necessária) → Produtos estavam só reservados? (sim: libera a reserva; não: registra devolução ou perda) → Pagamento é estornado → Pedido é cancelado
 
 - **Quem participa** - Cliente, atendente ou operador de caixa, gerência e funcionário da loja virtual.
 - **O que inicia o processo** - O pedido do cliente para cancelar uma compra ou a falta de confirmação do pagamento online.
-- **O que acontece** - Pedidos da loja virtual só podem ser cancelados antes do envio; cancelamentos na loja física precisam de autorização da gerência (RP07). Os produtos do pedido cancelado voltam ao estoque.
-- **Qual informação é gerada** - Pedido cancelado, funcionário que autorizou, status do pedido e do pagamento e quantidades devolvidas ao estoque.
-- **Qual é o resultado** - Pedido cancelado e estoque atualizado.
+- **O que acontece** - Pedidos da loja virtual só podem ser cancelados antes do envio; cancelamentos na loja física precisam de autorização da gerência (RP07). Se os produtos estavam apenas reservados (pedido da loja virtual ainda não enviado ou retirado), o sistema registra a liberação da reserva. Se já tinham sido baixados (venda concluída na loja física), os produtos voltam ao lote de origem por movimentação de devolução; produtos danificados ou vencidos são registrados como perda (RN22). O pagamento é estornado e as contas a receber ligadas a ele são canceladas.
+- **Qual informação é gerada** - Pedido cancelado, funcionário que autorizou, movimentações de liberação, devolução ou perda, status do pedido, do pagamento e das contas a receber.
+- **Qual é o resultado** - Pedido cancelado, estoque corrigido com o histórico do cancelamento e valores a receber ajustados.
 
 ## 6. Requisitos funcionais
 
@@ -261,22 +284,25 @@ Solicitação de cancelamento → Verificação da regra de cancelamento → Aut
 - **RF05:** O sistema deverá cadastrar os funcionários e definir o perfil de acesso de cada um de acordo com o cargo.
 - **RF28:** O sistema deverá cadastrar as categorias de produtos.
 
-### Estoque Único e Validade
+### Estoque Único, Lotes e Movimentações
 
 - **RF06:** O sistema deverá centralizar a contagem do estoque em um saldo único, atendendo ao mesmo tempo as vendas da loja virtual e da loja física.
 - **RF07:** O sistema deverá registrar as compras de reposição feitas aos fornecedores e a entrada das mercadorias recebidas no estoque.
 - **RF08:** O sistema deverá gravar a data de validade e o lote de cada produto com controle de validade no momento do recebimento.
-- **RF09:** O sistema deverá dar baixa no saldo do estoque automaticamente assim que qualquer venda for concluída.
-- **RF10:** O sistema deverá impedir a venda de uma quantidade maior do que a disponível em estoque.
+- **RF09:** O sistema deverá dar baixa no estoque automaticamente quando a venda da loja física for concluída e quando o pedido da loja virtual for enviado ou retirado, indicando o lote de onde saiu cada unidade.
+- **RF10:** O sistema deverá impedir a venda ou a reserva de uma quantidade maior do que a disponível em estoque, considerando o saldo físico menos as quantidades já reservadas.
 - **RF11:** O sistema deverá sugerir a saída prioritária dos lotes que estiverem mais próximos de vencer.
 - **RF12:** O sistema deverá bloquear a saída e a venda de produtos cuja data de validade já tenha expirado.
 - **RF13:** O sistema deverá emitir um alerta quando o saldo em estoque de um produto atingir o estoque mínimo definido para ele.
+- **RF33:** O sistema deverá registrar toda movimentação de estoque (entrada, reserva, liberação de reserva, venda, devolução, perda e ajuste) com o lote, a quantidade, a data, a hora, o responsável e o motivo, e permitir consultar o histórico de cada lote.
+- **RF34:** O sistema deverá registrar o recebimento parcial de uma compra, mantendo a quantidade comprada e a quantidade já recebida de cada produto.
+- **RF35:** O sistema deverá registrar perdas e ajustes de estoque somente com autorização da gerência e com o motivo informado.
 
 ### Operação de Vendas no Caixa (PDV)
 
 - **RF14:** O sistema deverá registrar as vendas realizadas no balcão da loja física, vinculando o cliente e o funcionário responsável.
-- **RF15:** O sistema deverá aceitar pagamentos em dinheiro, PIX e cartões de débito ou crédito, e permitir mais de uma forma de pagamento no mesmo pedido.
-- **RF16:** O sistema deverá permitir cancelar itens ou vendas no caixa somente quando o gerente autorizar com sua senha.
+- **RF15:** O sistema deverá aceitar pagamentos em dinheiro, PIX, cartão de débito e cartão de crédito em até 3 parcelas sem juros, e permitir mais de uma forma de pagamento no mesmo pedido.
+- **RF16:** O sistema deverá permitir cancelar itens ou vendas no caixa somente quando o gerente autorizar com sua senha, registrando a devolução dos produtos ao lote de origem ou a perda, quando danificados ou vencidos.
 - **RF30:** O sistema deverá permitir cadastrar o cliente no momento da venda no caixa.
 - **RF32:** O sistema deverá permitir aplicar desconto no pedido, exigindo autorização da gerência quando o desconto ultrapassar o limite definido.
 
@@ -285,8 +311,8 @@ Solicitação de cancelamento → Verificação da regra de cancelamento → Aut
 - **RF17:** O sistema deverá mostrar no catálogo da loja virtual apenas os produtos que possuem saldo disponível em estoque.
 - **RF18:** O sistema deverá permitir que o cliente opte por receber os produtos em casa ou retirar presencialmente na loja física.
 - **RF19:** O sistema deverá registrar os pedidos feitos através da loja virtual.
-- **RF20:** O sistema deverá dar baixa no estoque dos pedidos da loja virtual assim que o pagamento for confirmado.
-- **RF21:** O sistema deverá cancelar o pedido da loja virtual caso o pagamento não seja confirmado e devolver ao estoque os produtos de pedidos cancelados.
+- **RF20:** O sistema deverá reservar, em lotes específicos, os produtos de cada pedido da loja virtual no momento em que o pedido for registrado, mantendo a reserva até o envio ou a retirada.
+- **RF21:** O sistema deverá cancelar o pedido da loja virtual e liberar a reserva dos produtos caso o pagamento não seja confirmado.
 - **RF22:** O sistema deverá registrar o envio e a confirmação de entrega para os pedidos com opção de entrega em domicílio.
 - **RF23:** O sistema deverá confirmar a retirada do pedido da loja virtual mediante a conferência do código do pedido no balcão.
 - **RF29:** O sistema deverá registrar e atualizar o status de cada pedido.
@@ -294,30 +320,35 @@ Solicitação de cancelamento → Verificação da regra de cancelamento → Aut
 ### Financeiro e Consultas
 
 - **RF24:** O sistema deverá registrar as contas a pagar geradas pelas compras de reposição, permitindo dividir o valor em parcelas com datas de vencimento.
-- **RF25:** O sistema deverá registrar os valores a receber provenientes das vendas da loja física e da loja virtual.
-- **RF26:** O sistema deverá fazer o fechamento diário do caixa acumulando todas as entradas do dia.
+- **RF36:** O sistema deverá permitir registrar um ou mais pagamentos para uma mesma parcela de conta a pagar, atualizando o valor pago e o saldo devedor.
+- **RF25:** O sistema deverá gerar contas a receber a partir de cada pagamento autorizado, uma por parcela no cartão de crédito, com a data prevista de recebimento, e registrar a data e o valor efetivamente recebidos.
+- **RF26:** O sistema deverá fazer o fechamento diário do caixa considerando apenas os valores efetivamente recebidos no dia.
+- **RF37:** O sistema deverá emitir o fluxo de caixa, separando valores autorizados, valores recebidos, valores pendentes de recebimento e contas a pagar por data de vencimento.
 - **RF27:** O sistema deverá permitir a busca pelo histórico de pedidos de cada cliente.
 - **RF31:** O sistema deverá emitir relatórios de vendas por produto, categoria e canal de venda.
 
 ## 7. Requisitos não funcionais
 
+Cada requisito não funcional traz um critério que pode ser medido e verificado em teste.
+
 ### Segurança e Acessos
 
-- **RNF01:** O sistema deverá restringir os acessos a módulos e telas de acordo com o perfil de acesso do cargo de cada funcionário.
-- **RNF02:** O sistema deverá armazenar as senhas dos funcionários utilizando algoritmo de hash.
-- **RNF03:** O sistema deverá guardar um histórico das ações realizadas no sistema pelos funcionários, especialmente alterações diretas no estoque.
-- **RNF09:** O sistema deverá proteger os dados pessoais dos clientes, como CPF, telefone e e-mail, de acordo com a LGPD.
+- **RNF01:** O sistema deverá restringir os acessos a módulos e telas de acordo com o perfil de acesso do cargo de cada funcionário. **Verificação:** um funcionário com cargo de operador de caixa não consegue abrir as telas de preços, perdas e ajustes de estoque nem o financeiro.
+- **RNF02:** O sistema deverá armazenar as senhas dos funcionários utilizando algoritmo de hash. **Verificação:** nenhuma senha aparece em texto legível no banco de dados.
+- **RNF03:** O sistema deverá guardar o histórico das ações realizadas pelos funcionários, especialmente as movimentações de estoque, por no mínimo 5 anos, sem permitir alteração ou exclusão dos registros. **Verificação:** a tentativa de editar ou apagar uma movimentação é recusada e fica registrada.
+- **RNF09:** O sistema deverá proteger os dados pessoais dos clientes, como CPF, telefone e e-mail, de acordo com a LGPD. **Verificação:** o CPF aparece mascarado (ex.: \*\*\*.456.789-\*\*) para cargos sem permissão, e as solicitações de consulta dos dados pelo próprio cliente são atendidas em até 15 dias.
 
 ### Desempenho e Facilidade de Uso
 
-- **RNF04:** O sistema deverá atualizar as informações de saldo do estoque em tempo adequado para que a loja física e a loja virtual fiquem sempre em sintonia.
-- **RNF05:** O sistema deverá permitir a leitura e busca rápida de produtos no caixa via código de barras.
-- **RNF06:** O sistema deverá oferecer telas de operação do caixa com visual claro e navegação simples para o funcionário.
+- **RNF04:** O sistema deverá atualizar o saldo disponível do estoque nos dois canais em até 2 segundos após cada movimentação (venda, reserva, devolução ou entrada). **Verificação:** depois de uma venda no caixa, o catálogo da loja virtual mostra o novo saldo em até 2 segundos.
+- **RNF05:** O sistema deverá localizar o produto pelo código de barras no caixa em até 1 segundo em pelo menos 95% das leituras. **Verificação:** medição do tempo em 100 leituras seguidas.
+- **RNF06:** O sistema deverá permitir que um operador de caixa recém-contratado registre uma venda completa após no máximo 1 hora de treinamento, e que uma venda com até 10 itens seja concluída em até 2 minutos. **Verificação:** teste com um funcionário novo.
+- **RNF10:** O sistema deverá tratar cada venda, reserva e cancelamento como uma operação única (transação), de modo que duas vendas simultâneas nunca deixem o saldo disponível de um lote negativo. **Verificação:** duas vendas da última unidade de um produto feitas ao mesmo tempo resultam em uma venda aceita e uma recusada por falta de saldo.
 
 ### Funcionamento e Cópia de Segurança
 
-- **RNF07:** O sistema deverá manter a loja virtual funcionando continuamente para acesso público.
-- **RNF08:** O sistema deverá realizar backups do banco de dados diariamente de forma automática.
+- **RNF07:** O sistema deverá manter a loja virtual disponível em pelo menos 99,5% do tempo em cada mês (no máximo cerca de 3 horas e 36 minutos fora do ar por mês), sem contar manutenções programadas entre 2h e 5h e avisadas com 48 horas de antecedência. **Verificação:** relatório mensal de disponibilidade.
+- **RNF08:** O sistema deverá realizar backup completo do banco de dados todos os dias, de forma automática, guardar as cópias dos últimos 30 dias e permitir restaurar o banco em até 4 horas. **Verificação:** teste mensal de restauração de um backup.
 
 ## 8. Regras de negócio
 
@@ -333,7 +364,7 @@ Solicitação de cancelamento → Verificação da regra de cancelamento → Aut
 
 **RN06.** Quando um produto é vendido, a quantidade no estoque diminui.
 
-**RN07.** Não pode vender uma quantidade maior do que a disponível no estoque.
+**RN07.** Não pode vender nem reservar uma quantidade maior do que a disponível no estoque. A quantidade disponível é o saldo físico do lote menos as quantidades já reservadas para pedidos da loja virtual.
 
 **RN08.** Quando chegam novos produtos de um fornecedor, a quantidade no estoque aumenta.
 
@@ -356,6 +387,20 @@ Solicitação de cancelamento → Verificação da regra de cancelamento → Aut
 **RN17.** Nos pedidos da loja virtual, o cliente pode escolher receber em casa ou retirar na loja. Cada pedido pode ter no máximo uma entrega.
 
 **RN18.** O CPF de um cliente não pode ser cadastrado mais de uma vez.
+
+**RN19.** Toda alteração da quantidade em estoque deve ser registrada como uma movimentação do lote — entrada, reserva, liberação de reserva, venda, devolução, perda ou ajuste —, com quantidade, data, hora, responsável e motivo. As movimentações não podem ser alteradas nem excluídas: correções são feitas por uma nova movimentação de ajuste. O saldo de cada lote é calculado a partir das suas movimentações.
+
+**RN20.** Toda saída de produto por venda deve indicar o lote de onde as unidades foram retiradas, começando pelo lote de validade mais próxima. Um mesmo item vendido pode sair de mais de um lote.
+
+**RN21.** Na loja virtual, os produtos de cada pedido ficam reservados em lotes específicos desde o registro do pedido e só são baixados do estoque no envio ou na retirada. Na loja física, a baixa acontece quando a venda é concluída.
+
+**RN22.** No cancelamento, produtos apenas reservados têm a reserva liberada. Produtos já baixados voltam ao lote de origem por movimentação de devolução ou, se estiverem vencidos ou danificados, são registrados como perda.
+
+**RN23.** Uma parcela de conta a pagar pode ser quitada em um ou mais pagamentos. Ela só é considerada paga quando a soma dos pagamentos atinge o seu valor; até lá, fica como paga parcialmente.
+
+**RN24.** Todo pagamento autorizado gera contas a receber: uma para dinheiro, Pix ou débito, e uma por parcela no cartão de crédito, que aceita até 3 parcelas sem juros. O valor só é considerado recebido quando entra efetivamente na conta da empresa; até lá, fica pendente.
+
+**RN25.** Uma compra de reposição pode ser recebida em mais de uma entrega. A quantidade recebida de cada produto é registrada separadamente da quantidade comprada, e a compra só é considerada recebida quando todos os itens chegarem.
 
 ## 9. Restrições e políticas organizacionais
 
@@ -399,11 +444,15 @@ Solicitação de cancelamento → Verificação da regra de cancelamento → Aut
 
 **Justificativa:** Delimita o escopo da empresa: serviços e venda de animais exigiriam processos, cadastros e regras próprios.
 
+**RP11.** Perdas e ajustes de estoque só podem ser registrados com autorização da gerência e com o motivo informado.
+
+**Justificativa:** Perdas e ajustes alteram o estoque sem uma venda ou compra por trás; exigir autorização e motivo evita que diferenças de estoque sejam "corrigidas" sem explicação e preserva a confiança no histórico.
+
 ## 10. Fluxogramas
 
 Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma numeração. Legenda: oval = início e fim · retângulo = atividade · losango = decisão · retângulo tracejado = ligação com outro processo.
 
-**Integração entre os processos:** a venda na loja virtual (2) segue para a entrega (3) ou para a retirada (4); toda venda baixa o estoque (5); o estoque mínimo inicia a reposição (6), que gera as contas a pagar e aguarda o recebimento (7); pagamentos (8) e contas a pagar alimentam o controle financeiro (9).
+**Integração entre os processos:** a venda na loja virtual (2) reserva os produtos e segue para a entrega (3) ou para a retirada (4), onde a reserva vira baixa; toda movimentação passa pelo controle de estoque (5), que registra o histórico por lote; o estoque mínimo inicia a reposição (6), que gera as contas a pagar e aguarda o recebimento (7), inclusive em partes; os pagamentos autorizados (8) geram contas a receber, e o controle financeiro (9) concilia o que foi recebido e registra os pagamentos aos fornecedores; o cancelamento (12) libera reservas ou registra devoluções e perdas.
 
 ### 10.1 Venda na loja física
 
@@ -455,6 +504,8 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 ## 11. Entidades
 
+O modelo possui 16 entidades, organizadas pelos processos da empresa.
+
 ### Entidades relacionadas aos clientes
 
 **Cliente** (*Para cadastrar e identificar as pessoas que compram na loja física ou na loja virtual. Toda venda é vinculada a um cliente (RP02)*)
@@ -465,7 +516,7 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 - Telefone;
 - E-mail;
 
-### Entidades relacionadas aos produtos
+### Entidades relacionadas aos produtos e ao estoque
 
 **Produto** (*Para cadastrar os itens vendidos pela loja e seus preços*)
 
@@ -485,14 +536,28 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 - Nome;
 - Descrição;
 
-**Estoque** (*Para saber quanto de cada produto está armazenado, por lote, no estoque único das duas lojas (RP01, RN11)*)
+**Lote** (*Para identificar cada lote de um produto guardado no estoque único das duas lojas, com a sua validade (RP01, RN11). Substitui a antiga entidade Estoque: o nome Lote deixa claro que cada registro é um lote, e não o estoque inteiro do produto*)
 
-- ID do estoque;
+- ID do lote;
 - Produto;
-- Lote;
-- Quantidade disponível;
+- Código do lote;
 - Data de validade, quando aplicável;
 - Data de entrada;
+- Saldo físico (derivado);
+- Quantidade reservada (derivado);
+- Quantidade disponível (derivado);
+
+**Movimentação de estoque** (*Para guardar o histórico de tudo o que entra, sai ou fica reservado em cada lote: entradas, reservas, liberações de reserva, vendas, devoluções, perdas e ajustes (RN19). É a partir dela que se sabe de qual lote saiu cada venda (RN20)*)
+
+- ID da movimentação;
+- Lote;
+- Tipo (entrada, reserva, liberação de reserva, venda, devolução, perda, ajuste positivo ou ajuste negativo);
+- Quantidade;
+- Data e hora;
+- Motivo;
+- Funcionário responsável;
+- Item do pedido (nas reservas, liberações, vendas e devoluções);
+- Item da compra (nas entradas);
 
 ### Entidades relacionadas aos fornecedores e compras
 
@@ -509,15 +574,16 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 - ID da compra;
 - Fornecedor;
 - Data da compra;
-- Status;
+- Status (solicitada, recebida parcialmente, recebida ou cancelada);
 - Valor total (derivado);
 
-**Item da compra** (*Para registrar quais produtos vieram em cada compra, com quantidade e custo. Resolve o N:N entre Compra e Produto*)
+**Item da compra** (*Para registrar quais produtos foram comprados em cada compra, com quantidade e custo. Resolve o N:N entre Compra e Produto*)
 
 - Compra;
 - Produto;
-- Quantidade;
+- Quantidade comprada;
 - Custo unitário;
+- Quantidade recebida (derivado);
 
 **Conta a pagar** (*Para registrar as parcelas que a empresa deve aos fornecedores por cada compra (RN12)*)
 
@@ -526,12 +592,20 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 - Número da parcela;
 - Valor;
 - Data de vencimento;
-- Data de pagamento;
-- Status;
+- Valor pago (derivado);
+- Status (pendente, paga parcialmente, paga ou cancelada);
+
+**Pagamento da conta** (*Para registrar cada pagamento feito em uma parcela, já que uma mesma parcela pode ser paga em mais de uma vez (RN23)*)
+
+- ID do pagamento da conta;
+- Conta a pagar;
+- Valor pago;
+- Data do pagamento;
+- Forma de pagamento;
 
 ### Entidades relacionadas aos funcionários
 
-**Funcionário** (*Para identificar quem trabalha na Petly Club, quem registra as vendas da loja física (RN14) e o acesso de cada um ao sistema (RP08)*)
+**Funcionário** (*Para identificar quem trabalha na Petly Club, quem registra as vendas da loja física (RN14) e as movimentações de estoque (RN19), e o acesso de cada um ao sistema (RP08)*)
 
 - ID do funcionário;
 - Nome;
@@ -562,14 +636,26 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 - Preço unitário;
 - Subtotal (derivado);
 
-**Pagamento** (*Para registrar como cada pedido foi pago; um pedido pode ter mais de uma forma de pagamento (RN15)*)
+**Pagamento** (*Para registrar a autorização de cada forma de pagamento usada no pedido; um pedido pode ter mais de uma forma de pagamento (RN15)*)
 
 - ID do pagamento;
 - Pedido;
 - Forma de pagamento;
 - Valor;
-- Data;
-- Status;
+- Número de parcelas;
+- Data da autorização;
+- Status (pendente, autorizado, recusado ou estornado);
+
+**Conta a receber** (*Para registrar quando o dinheiro de cada pagamento autorizado entra de fato na conta da empresa, separando o que já foi recebido do que ainda está pendente (RN24)*)
+
+- ID da conta a receber;
+- Pagamento;
+- Número da parcela;
+- Valor bruto;
+- Valor líquido;
+- Data prevista;
+- Data do recebimento;
+- Status (pendente, recebida ou cancelada);
 
 ### Entidades relacionadas às entregas
 
@@ -588,7 +674,7 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 **Endereço:** Só é necessário quando o pedido é entregue; foi registrado como atributo composto de Entrega.
 
-**Forma de pagamento:** É um valor fixo (dinheiro, Pix, cartão de débito ou crédito); foi registrada como atributo de Pagamento.
+**Forma de pagamento:** É um valor fixo (dinheiro, Pix, cartão de débito ou crédito); foi registrada como atributo de Pagamento e de Pagamento da conta.
 
 **Cargo e Perfil de acesso:** O cargo define o acesso ao sistema (RP08); foi registrado como atributo de Funcionário.
 
@@ -596,13 +682,11 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 **Histórico do cliente:** É obtido pela consulta aos pedidos do cliente; não precisa ser armazenado separadamente.
 
-**Movimentação de estoque:** As entradas vêm das compras e as saídas vêm dos pedidos; a quantidade de cada lote fica em Estoque.
+**Reserva:** Não virou entidade própria. Uma reserva é uma movimentação do tipo "reserva" ligada ao item do pedido e ao lote; ao ser liberada ou convertida em venda, gera outra movimentação. Assim, todo o ciclo do produto fica no mesmo histórico.
 
 **Produto do fornecedor:** O vínculo entre fornecedor e produto já fica registrado por meio de Compra e Item da compra.
 
-**Nota fiscal:** A compra de reposição já registra fornecedor, data, produtos e valores.
-
-**Conta a receber:** Os valores a receber são os pagamentos pendentes dos pedidos, registrados em Pagamento.
+**Nota fiscal e Recebimento da compra:** A compra de reposição já registra fornecedor, data, produtos e valores, e cada entrega do fornecedor fica registrada pelas movimentações de entrada ligadas ao item da compra.
 
 **Entregador, Escala, Comissão e Log do sistema:** Não fazem parte do escopo desta etapa do projeto; não há regras de negócio que exijam essas informações.
 
@@ -614,15 +698,18 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 | FUNCIONÁRIO | id_funcionario, nome, cpf, cargo, login, senha | id_funcionario | nenhuma |
 | CATEGORIA | id_categoria, nome, descricao | id_categoria | nenhuma |
 | PRODUTO | id_produto, nome, descricao, marca, codigo_barras, preco, estoque_minimo, controla_validade, id_categoria | id_produto | id_categoria → CATEGORIA |
+| LOTE | id_lote, codigo_lote, data_entrada, data_validade, saldo_fisico (derivado: soma das movimentações que entram menos as que saem), quantidade_reservada (derivado: reservas ainda não liberadas nem baixadas), quantidade_disponivel (derivado: saldo_fisico − quantidade_reservada), id_produto | id_lote | id_produto → PRODUTO |
+| MOVIMENTACAO_ESTOQUE | id_movimentacao, tipo, quantidade, data_hora, motivo, id_lote, id_funcionario, id_pedido + id_produto (item do pedido), id_compra + id_produto (item da compra) | id_movimentacao | id_lote → LOTE; id_funcionario → FUNCIONÁRIO (opcional nas operações automáticas da loja virtual); id_pedido + id_produto → ITEM_PEDIDO (nas reservas, liberações, vendas e devoluções); id_compra + id_produto → ITEM_COMPRA (nas entradas) |
 | FORNECEDOR | id_fornecedor, razao_social, cnpj, telefone, email | id_fornecedor | nenhuma |
+| COMPRA | id_compra, data_compra, status, valor_total (derivado: soma de quantidade_comprada × custo_unitario dos itens), id_fornecedor | id_compra | id_fornecedor → FORNECEDOR |
+| ITEM_COMPRA | id_compra, id_produto, quantidade_comprada, custo_unitario, quantidade_recebida (derivado: soma das movimentações de entrada do item) | id_compra + id_produto (composta) | id_compra → COMPRA; id_produto → PRODUTO |
+| CONTA_PAGAR | id_conta_pagar, numero_parcela, valor, data_vencimento, valor_pago (derivado: soma dos pagamentos da conta), status, id_compra | id_conta_pagar | id_compra → COMPRA |
+| PAGAMENTO_CONTA | id_pagamento_conta, valor_pago, data_pagamento, forma_pagamento, id_conta_pagar | id_pagamento_conta | id_conta_pagar → CONTA_PAGAR |
 | PEDIDO | id_pedido, data_pedido, canal_venda, tipo_recebimento, status, desconto, valor_total (derivado: soma dos subtotais dos itens menos o desconto), id_cliente, id_funcionario | id_pedido | id_cliente → CLIENTE; id_funcionario → FUNCIONÁRIO (opcional nos pedidos da loja virtual) |
 | ITEM_PEDIDO | id_pedido, id_produto, quantidade, preco_unitario, subtotal (derivado: quantidade × preco_unitario) | id_pedido + id_produto (composta) | id_pedido → PEDIDO; id_produto → PRODUTO |
-| PAGAMENTO | id_pagamento, forma_pagamento, valor, data_pagamento, status, id_pedido | id_pagamento | id_pedido → PEDIDO |
+| PAGAMENTO | id_pagamento, forma_pagamento, valor, numero_parcelas, data_autorizacao, status, id_pedido | id_pagamento | id_pedido → PEDIDO |
+| CONTA_RECEBER | id_conta_receber, numero_parcela, valor_bruto, valor_liquido, data_prevista, data_recebimento, status, id_pagamento | id_conta_receber | id_pagamento → PAGAMENTO |
 | ENTREGA | id_entrega, endereco_entrega (composto: logradouro, numero, complemento, bairro, cidade, uf, cep), data_prevista, data_entrega, status, id_pedido | id_entrega | id_pedido → PEDIDO (não se repete) |
-| ESTOQUE | id_estoque, lote, data_entrada, data_validade, quantidade, id_produto | id_estoque | id_produto → PRODUTO |
-| COMPRA | id_compra, data_compra, status, valor_total (derivado: soma de quantidade × custo_unitario dos itens), id_fornecedor | id_compra | id_fornecedor → FORNECEDOR |
-| ITEM_COMPRA | id_compra, id_produto, quantidade, custo_unitario | id_compra + id_produto (composta) | id_compra → COMPRA; id_produto → PRODUTO |
-| CONTA_PAGAR | id_conta_pagar, numero_parcela, valor, data_vencimento, data_pagamento, status, id_compra | id_conta_pagar | id_compra → COMPRA |
 
 ## 13. Relacionamentos
 
@@ -632,13 +719,19 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 | FUNCIONÁRIO — REGISTRA — PEDIDO | 1:N | id_funcionario migra para PEDIDO como FK (opcional nos pedidos da loja virtual). |
 | PEDIDO — CONTÉM — PRODUTO | N:N | Resolvido pela associativa ITEM_PEDIDO (quantidade, preco_unitario). |
 | PEDIDO — POSSUI — PAGAMENTO | 1:N | id_pedido migra para PAGAMENTO como FK. |
+| PAGAMENTO — GERA — CONTA_RECEBER | 1:N | id_pagamento migra para CONTA_RECEBER como FK; cada parcela a receber é um registro. |
 | PEDIDO — GERA — ENTREGA | 1:1 opcional | id_pedido migra para ENTREGA como FK e não se repete (no máximo uma entrega por pedido). |
 | CATEGORIA — CLASSIFICA — PRODUTO | 1:N | id_categoria migra para PRODUTO como FK. |
-| PRODUTO — POSSUI — ESTOQUE | 1:N | id_produto migra para ESTOQUE como FK; cada lote é um registro. |
+| PRODUTO — POSSUI — LOTE | 1:N | id_produto migra para LOTE como FK; cada lote é um registro. |
+| LOTE — SOFRE — MOVIMENTACAO_ESTOQUE | 1:N | id_lote migra para MOVIMENTACAO_ESTOQUE como FK; cada movimentação é um registro do histórico. |
+| ITEM_PEDIDO — ORIGINA — MOVIMENTACAO_ESTOQUE | 1:N | id_pedido + id_produto migram para MOVIMENTACAO_ESTOQUE como FK; um item pode gerar reserva, venda, liberação e devolução, e pode usar mais de um lote. |
+| ITEM_COMPRA — ORIGINA — MOVIMENTACAO_ESTOQUE | 1:N | id_compra + id_produto migram para MOVIMENTACAO_ESTOQUE como FK; cada entrega recebida gera uma movimentação de entrada. |
+| FUNCIONÁRIO — REGISTRA — MOVIMENTACAO_ESTOQUE | 1:N | id_funcionario migra para MOVIMENTACAO_ESTOQUE como FK (opcional nas operações automáticas da loja virtual). |
 | FORNECEDOR — ATENDE — COMPRA | 1:N | id_fornecedor migra para COMPRA como FK. |
-| COMPRA — REPÕE — PRODUTO | N:N | Resolvido pela associativa ITEM_COMPRA (quantidade, custo_unitario). |
+| COMPRA — REPÕE — PRODUTO | N:N | Resolvido pela associativa ITEM_COMPRA (quantidade_comprada, custo_unitario). |
 | FORNECEDOR — FORNECE — PRODUTO | N:N | Resolvido por COMPRA e ITEM_COMPRA, sem ligação direta entre FORNECEDOR e PRODUTO. |
 | COMPRA — GERA — CONTA_PAGAR | 1:N | id_compra migra para CONTA_PAGAR como FK; cada parcela é um registro. |
+| PAGAMENTO_CONTA — QUITA — CONTA_PAGAR | N:1 | id_conta_pagar migra para PAGAMENTO_CONTA como FK; cada pagamento da parcela é um registro. |
 
 ### 13.1 Verificação de atributos nos relacionamentos
 
@@ -672,6 +765,16 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 **Resultado:** FK id_pedido em PAGAMENTO
 
+**Relacionamento:** PAGAMENTO — GERA — CONTA_RECEBER
+
+**Tipo:** 1:N
+
+**Regra:** RN24
+
+**Possui atributos próprios?** Não
+
+**Resultado:** FK id_pagamento em CONTA_RECEBER
+
 **Relacionamento:** PEDIDO — GERA — ENTREGA
 
 **Tipo:** 1:1 opcional
@@ -692,7 +795,7 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 **Resultado:** FK id_categoria em PRODUTO
 
-**Relacionamento:** PRODUTO — POSSUI — ESTOQUE (por lote)
+**Relacionamento:** PRODUTO — POSSUI — LOTE
 
 **Tipo:** 1:N
 
@@ -700,7 +803,47 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 **Possui atributos próprios?** Não
 
-**Resultado:** FK id_produto em ESTOQUE
+**Resultado:** FK id_produto em LOTE
+
+**Relacionamento:** LOTE — SOFRE — MOVIMENTACAO_ESTOQUE
+
+**Tipo:** 1:N
+
+**Regra:** RN19
+
+**Possui atributos próprios?** Não
+
+**Resultado:** FK id_lote em MOVIMENTACAO_ESTOQUE
+
+**Relacionamento:** ITEM_PEDIDO — ORIGINA — MOVIMENTACAO_ESTOQUE
+
+**Tipo:** 1:N
+
+**Regra:** RN20, RN21, RN22
+
+**Possui atributos próprios?** Não
+
+**Resultado:** FK id_pedido + id_produto em MOVIMENTACAO_ESTOQUE
+
+**Relacionamento:** ITEM_COMPRA — ORIGINA — MOVIMENTACAO_ESTOQUE
+
+**Tipo:** 1:N
+
+**Regra:** RN08, RN25
+
+**Possui atributos próprios?** Não
+
+**Resultado:** FK id_compra + id_produto em MOVIMENTACAO_ESTOQUE
+
+**Relacionamento:** FUNCIONÁRIO — REGISTRA — MOVIMENTACAO_ESTOQUE
+
+**Tipo:** 1:N
+
+**Regra:** RN19, RP06, RP11
+
+**Possui atributos próprios?** Não
+
+**Resultado:** FK id_funcionario em MOVIMENTACAO_ESTOQUE
 
 **Relacionamento:** FORNECEDOR — ATENDE — COMPRA
 
@@ -721,6 +864,16 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 **Possui atributos próprios?** Não
 
 **Resultado:** FK id_compra em CONTA_PAGAR
+
+**Relacionamento:** PAGAMENTO_CONTA — QUITA — CONTA_PAGAR
+
+**Tipo:** N:1
+
+**Regra:** RN23
+
+**Possui atributos próprios?** Não
+
+**Resultado:** FK id_conta_pagar em PAGAMENTO_CONTA
 
 **Relacionamento:** PEDIDO — CONTÉM — PRODUTO
 
@@ -758,17 +911,23 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 **Funcionário — Pedido:** o funcionário só aparece como responsável pelo registro da venda; o momento do registro coincide com a data do pedido.
 
-**Pedido — Pagamento:** valor, forma de pagamento, data e status descrevem o pagamento. A forma de pagamento é atributo de PAGAMENTO, não entidade própria. Como um pedido pode ter vários pagamentos (RN15), a relação é 1:N e PAGAMENTO é uma entidade normal, não associativa.
+**Pedido — Pagamento:** valor, forma de pagamento, número de parcelas, data da autorização e status descrevem o pagamento. A forma de pagamento é atributo de PAGAMENTO, não entidade própria. Como um pedido pode ter vários pagamentos (RN15), a relação é 1:N e PAGAMENTO é uma entidade normal, não associativa.
+
+**Pagamento — Conta_Receber:** número da parcela, valores, datas e status descrevem cada valor a receber. O pagamento registra a autorização, e a conta a receber registra quando o dinheiro entra de fato (RN24).
 
 **Pedido — Entrega:** o endereço de entrega (logradouro, número, complemento, bairro, cidade, UF e CEP) é atributo composto de ENTREGA. Não existe entidade Endereço. A relação é 1:1 opcional porque vendas no balcão e pedidos da loja virtual retirados na loja não geram entrega (RN17).
 
 **Categoria — Produto:** o nome e a descrição da categoria pertencem à categoria, e o produto guarda só o id_categoria.
 
-**Produto — Estoque:** o estoque é controlado por lote, então um produto tem vários registros de estoque. lote, data_validade, quantidade e data_entrada descrevem o registro de estoque, não o par Produto+Estoque.
+**Produto — Lote:** o estoque é controlado por lote, então um produto tem vários lotes. Código do lote, validade e data de entrada descrevem o lote, não o par Produto+Lote.
+
+**Lote — Movimentação, Item_Pedido — Movimentação, Item_Compra — Movimentação e Funcionário — Movimentação:** tipo, quantidade, data e hora e motivo descrevem a própria movimentação. Por isso, MOVIMENTACAO_ESTOQUE é uma entidade comum, ligada a cada um desses lados por um relacionamento 1:N, e não uma associativa. É ela que liga cada venda ao lote de onde as unidades saíram (RN20).
 
 **Fornecedor — Compra:** data, valor_total e status descrevem a compra.
 
 **Compra — Conta_Pagar:** número da parcela, valor, vencimento e status descrevem cada conta a pagar, não a ligação com a compra (RN12).
+
+**Conta_Pagar — Pagamento_Conta:** valor pago, data e forma de pagamento descrevem cada pagamento feito na parcela (RN23).
 
 #### Relacionamentos com atributos
 
@@ -784,17 +943,21 @@ Os fluxogramas representam os 12 processos de negócio da seção 5, na mesma nu
 
 **Subtotal:** não é armazenado, por ser derivado (quantidade × preco_unitario).
 
+**Lotes do item:** os lotes de onde saíram as unidades não ficam no item, porque um mesmo item pode usar mais de um lote. Eles ficam nas movimentações ligadas ao item (RN20).
+
 **Identificação:** PK composta id_pedido + id_produto.
 
 #### COMPRA — REPÕE — PRODUTO → ITEM_COMPRA (RN10)
 
 **Por que é N:N:** uma compra de reposição traz vários produtos, e um produto é comprado em várias compras.
 
-**Atributos do relacionamento:** quantidade e custo_unitario.
+**Atributos do relacionamento:** quantidade_comprada e custo_unitario.
 
 **Por que pertencem à relação:** o custo varia a cada compra, então não pode ficar só em PRODUTO. Isso preserva o histórico de custos e permite calcular margem.
 
-**Lote e validade:** ficam em ESTOQUE, no momento da entrada (RN11), e não em ITEM_COMPRA.
+**Quantidade recebida:** é derivada da soma das movimentações de entrada ligadas ao item, o que permite registrar uma compra recebida em mais de uma entrega (RN25).
+
+**Lote e validade:** ficam em LOTE, no momento da entrada (RN11), e não em ITEM_COMPRA.
 
 **Identificação:** PK composta id_compra + id_produto.
 
@@ -813,25 +976,31 @@ Nós adotamos a notação (mínimo e máximo) ao lado de cada entidade, indicand
 | Cliente – Pedido | 1:N. Cliente (0,N), Pedido (1,1) | Um cliente pode fazer vários pedidos ou nenhum, caso esteja apenas cadastrado (RN01, RN02). Todo pedido pertence a exatamente um cliente, pois o CPF identifica o tutor, inclusive na loja física (RP02). |
 | Funcionário – Pedido | 1:N. Funcionário (0,N), Pedido (0,1) | Um funcionário registra vários pedidos (RN14). Na loja virtual a compra é feita pelo próprio cliente, sem atendente, por isso o mínimo do lado do pedido é 0. |
 | Pedido – Pagamento | 1:N. Pedido (1,N), Pagamento (1,1) | Um pedido pode ser pago de mais de uma forma, então pode ter vários pagamentos, e todo pedido tem ao menos um pagamento associado (RN15). Cada pagamento refere-se a um único pedido. |
+| Pagamento – Conta_Receber | 1:N. Pagamento (0,N), Conta_Receber (1,1) | Um pagamento autorizado gera uma conta a receber, ou até três no crédito parcelado (RN24). Um pagamento pendente ou recusado não gera nenhuma, por isso o mínimo é 0. Cada conta a receber pertence a um único pagamento. |
 | Pedido – Entrega | 1:1 opcional. Pedido (0,1), Entrega (1,1) | Um pedido tem no máximo uma entrega (RN17). Vendas no balcão e pedidos da loja virtual retirados na loja não têm entrega, por isso o mínimo do lado do pedido é 0. Toda entrega pertence a exatamente um pedido. |
 | Categoria – Produto | 1:N. Categoria (0,N), Produto (1,1) | Uma categoria pode agrupar vários produtos ou ainda não ter nenhum. Cada produto pertence a uma única categoria (RN04). |
 | Pedido – Item_Pedido | 1:N. Pedido (1,N), Item_Pedido (1,1) | Um pedido só existe com pelo menos um item (RN03). Cada item pertence a um único pedido. |
 | Produto – Item_Pedido | 1:N. Produto (0,N), Item_Pedido (1,1) | Um produto pode aparecer em vários itens de pedido, ou em nenhum se nunca foi vendido (RN03). Cada item refere-se a um único produto. |
-| Produto – Estoque | 1:N. Produto (0,N), Estoque (1,1) | O estoque é único para as duas lojas (RP01) e controla lotes com validade (RN11). Um produto pode ter vários lotes, ou nenhum se ainda não foi recebido. Cada lote pertence a um único produto. |
+| Produto – Lote | 1:N. Produto (0,N), Lote (1,1) | O estoque é único para as duas lojas (RP01) e controlado por lote (RN11). Um produto pode ter vários lotes, ou nenhum se ainda não foi recebido. Cada lote pertence a um único produto. |
+| Lote – Movimentação_Estoque | 1:N. Lote (1,N), Movimentação (1,1) | Todo lote nasce de uma movimentação de entrada e acumula todas as movimentações seguintes (RN19). Cada movimentação refere-se a um único lote. |
+| Item_Pedido – Movimentação_Estoque | 1:N. Item_Pedido (1,N), Movimentação (0,1) | Todo item vendido gera pelo menos uma movimentação: a reserva, na loja virtual, ou a venda, na loja física (RN21). Ele pode gerar várias quando sai de mais de um lote (RN20) ou quando é cancelado (RN22). Movimentações de entrada, perda ou ajuste não têm item de pedido, por isso o mínimo do outro lado é 0. |
+| Item_Compra – Movimentação_Estoque | 1:N. Item_Compra (0,N), Movimentação (0,1) | Um item comprado pode ainda não ter chegado (nenhuma entrada) ou ter chegado em várias entregas (RN25). Só as movimentações de entrada têm item de compra. |
+| Funcionário – Movimentação_Estoque | 1:N. Funcionário (0,N), Movimentação (0,1) | Um funcionário registra várias movimentações (RN19, RP06, RP11). Reservas e liberações automáticas da loja virtual não têm funcionário responsável. |
 | Fornecedor – Compra | 1:N. Fornecedor (0,N), Compra (1,1) | Um fornecedor pode atender várias compras, ou nenhuma se acabou de ser cadastrado. Cada compra é feita a um único fornecedor (RN10). |
 | Compra – Item_Compra | 1:N. Compra (1,N), Item_Compra (1,1) | Toda compra tem ao menos um item (RN10). Cada item pertence a uma única compra. |
 | Produto – Item_Compra | 1:N. Produto (0,N), Item_Compra (1,1) | Um produto pode ser reposto em várias compras, ou em nenhuma se ainda não foi comprado. Cada item de compra refere-se a um único produto (RN10). |
 | Compra – Conta_Pagar | 1:N. Compra (1,N), Conta_Pagar (1,1) | Toda compra gera pelo menos uma conta a pagar, podendo ser dividida em parcelas (RN12). Cada conta pertence a uma única compra. |
+| Conta_Pagar – Pagamento_Conta | 1:N. Conta_Pagar (0,N), Pagamento_Conta (1,1) | Uma parcela pode ainda não ter sido paga ou ter sido paga em uma ou mais vezes (RN23). Cada pagamento refere-se a uma única parcela. |
 
-Nos relacionamentos 1:N, a chave primária do lado 1 migra como chave estrangeira (FK) para o lado N. Em Funcionário–Pedido, a FK id_funcionario em PEDIDO é opcional (aceita nulo), por causa dos pedidos da loja virtual. No 1:1 Pedido–Entrega, a FK id_pedido fica em ENTREGA, que é o lado de participação obrigatória, com restrição de unicidade (UNIQUE), garantindo no máximo uma entrega por pedido.
+Nos relacionamentos 1:N, a chave primária do lado 1 migra como chave estrangeira (FK) para o lado N. Em Funcionário–Pedido e Funcionário–Movimentação, a FK id_funcionario é opcional (aceita nulo), por causa das operações automáticas da loja virtual. No 1:1 Pedido–Entrega, a FK id_pedido fica em ENTREGA, que é o lado de participação obrigatória, com restrição de unicidade (UNIQUE), garantindo no máximo uma entrega por pedido.
 
-Em Pedido–Pagamento, a cardinalidade mínima do lado do pedido é 1: todo pedido possui ao menos um pagamento associado desde o seu registro (RN15). Na loja virtual, o pagamento pode ficar com status pendente até a confirmação, mas o registro do pagamento existe. Assim, a situação “aguardando pagamento” é controlada pelo status do próprio pagamento, e não pela ausência dele.
+Em Pedido–Pagamento, a cardinalidade mínima do lado do pedido é 1: todo pedido possui ao menos um pagamento associado desde o seu registro (RN15). Na loja virtual, o pagamento pode ficar com status pendente até a confirmação, mas o registro do pagamento existe. Assim, a situação "aguardando pagamento" é controlada pelo status do próprio pagamento, e não pela ausência dele. Já o dinheiro que entrou de fato é controlado pelas contas a receber (RN24).
 
 O endereço de entrega foi registrado como atributo composto da entidade Entrega (logradouro, número, complemento, bairro, cidade, UF e CEP), pois só é necessário quando o pedido é entregue na casa do cliente. Por isso, não foi criada uma entidade Endereço.
 
 ### 14.1 Relacionamentos N:N
 
-Analisamos cada par de entidades verificando se ocorre “muitos” nos dois sentidos. Foram encontrados três relacionamentos N:N, apresentados com a cardinalidade mínima e máxima de cada lado:
+Analisamos cada par de entidades verificando se ocorre "muitos" nos dois sentidos. Foram encontrados três relacionamentos N:N, apresentados com a cardinalidade mínima e máxima de cada lado:
 
 | Relacionamento N:N | Cardinalidade | Regra que sustenta |
 |---|---|---|
@@ -841,7 +1010,9 @@ Analisamos cada par de entidades verificando se ocorre “muitos” nos dois sen
 
 **Pedido × Produto.** Um pedido contém vários produtos, e um produto pode estar em vários pedidos. O N:N foi resolvido pela entidade associativa **Item_Pedido**, com chave primária composta por id_pedido e id_produto (ambas também FKs). Os atributos do relacionamento são quantidade e preco_unitario, este último guardando o preço praticado na data da venda, para que uma alteração posterior no preço do produto não modifique pedidos antigos (RN13). O subtotal não é armazenado, pois é derivado (quantidade × preco_unitario). Após a resolução, o relacionamento passa a ser Pedido (1,N) – Item_Pedido (1,1) e Produto (0,N) – Item_Pedido (1,1), como mostra a seção 13.
 
-**Compra × Produto.** Uma compra de reposição traz vários produtos, e um produto é reposto em várias compras. O N:N foi resolvido pela entidade associativa **Item_Compra**, com os atributos quantidade e custo_unitario. A chave primária é composta por id_compra e id_produto (ambas também FKs), pois cada produto aparece uma única vez em cada compra, com a quantidade total adquirida. Lote e validade não pertencem ao Item_Compra: ficam registrados na entidade Estoque, que controla os lotes de cada produto (RN11). Por isso não é necessário incluir o lote na chave, e a PK composta está definida.
+**Compra × Produto.** Uma compra de reposição traz vários produtos, e um produto é reposto em várias compras. O N:N foi resolvido pela entidade associativa **Item_Compra**, com os atributos quantidade_comprada e custo_unitario. A chave primária é composta por id_compra e id_produto (ambas também FKs), pois cada produto aparece uma única vez em cada compra, com a quantidade total adquirida. Lote e validade não pertencem ao Item_Compra: ficam registrados na entidade Lote (RN11). Se a compra chegar em mais de uma entrega, cada entrega gera uma movimentação de entrada ligada ao mesmo item (RN25). Por isso não é necessário incluir o lote na chave, e a PK composta está definida.
+
+**Lote × Item_Pedido (verificado e descartado como N:N direto).** Um item vendido pode sair de vários lotes, e um lote abastece vários itens vendidos, o que forma um "muitos" nos dois sentidos. Esse vínculo não ganhou uma associativa própria porque já é resolvido por **Movimentação_Estoque**: cada movimentação de venda liga um item a um lote e guarda a quantidade retirada daquele lote (RN20). Além da venda, a mesma entidade registra reservas, liberações e devoluções do item, mantendo o ciclo completo no mesmo histórico.
 
 **Fornecedor × Produto.** Conceitualmente, um fornecedor pode fornecer vários produtos e um produto pode ser fornecido por vários fornecedores (RN09). Em vez de criar uma associativa direta entre as duas entidades, o grupo decidiu representar o vínculo pelo processo de Compra, que registra a situação definitiva: a empresa comprou determinados produtos de determinado fornecedor. O caminho fica:
 
@@ -851,25 +1022,28 @@ FORNECEDOR ──1:N──► COMPRA ──1:N──► ITEM_COMPRA ◄──N:1
 
 Exemplo: o Fornecedor X vende Ração A, Ração B e Petisco C. Na Compra nº 125, feita a esse fornecedor, os itens registrados são 50 × Ração A, 30 × Ração B e 20 × Petisco C. Assim, o vínculo entre produto e fornecedor fica documentado com data, quantidade e custo unitário, informações que uma tabela de ligação simples não guardaria. Uma tabela Produto_Fornecedor duplicaria essa informação e só se justificaria se a loja passasse a manter um cadastro de fornecedores habilitados por produto, com preço de tabela e prazo de entrega, o que fica como possível evolução do modelo.
 
-Os demais relacionamentos (Cliente–Pedido, Funcionário–Pedido, Pedido–Pagamento, Pedido–Entrega, Categoria–Produto, Fornecedor–Compra, Produto–Estoque e Compra–Conta_Pagar) não são N:N e não exigem entidade associativa. Pedido–Pagamento e Compra–Conta_Pagar são 1:N, e Pedido–Entrega é 1:1 opcional.
+Os demais relacionamentos (Cliente–Pedido, Funcionário–Pedido, Pedido–Pagamento, Pagamento–Conta_Receber, Pedido–Entrega, Categoria–Produto, Produto–Lote, Lote–Movimentação, Funcionário–Movimentação, Fornecedor–Compra, Compra–Conta_Pagar e Conta_Pagar–Pagamento_Conta) não são N:N e não exigem entidade associativa. Pedido–Entrega é 1:1 opcional; os outros são 1:N.
 
 ## 15. Dicionário de dados conceitual
 
 | Entidade | Descrição | Principais atributos |
 |---|---|---|
 | Cliente | Pessoa física (tutor) que realiza compras na loja física ou virtual. | id_cliente, nome, CPF, telefone, e-mail |
-| Funcionário | Colaborador que registra vendas e movimentações de mercadorias. | id_funcionario, nome, CPF, cargo, login, senha |
+| Funcionário | Colaborador que registra vendas e movimentações de estoque. | id_funcionario, nome, CPF, cargo, login, senha |
 | Categoria | Classificação dos produtos vendidos. | id_categoria, nome, descrição |
 | Produto | Produto comercializado pela empresa. | id_produto, nome, descrição, marca, código de barras, preço, estoque_minimo, controla_validade |
-| Estoque | Lotes de cada produto no estoque único das duas lojas. | id_estoque, lote, quantidade, data_validade, data_entrada |
+| Lote | Lote de um produto no estoque único das duas lojas. | id_lote, código do lote, data_validade, data_entrada, saldo_fisico, quantidade_reservada, quantidade_disponivel |
+| Movimentação_Estoque | Histórico de entradas, reservas, liberações, vendas, devoluções, perdas e ajustes de cada lote. | id_movimentacao, tipo, quantidade, data_hora, motivo |
 | Pedido | Venda realizada na loja física ou na loja virtual. | id_pedido, data, canal_venda, tipo_recebimento, status, desconto, valor_total |
 | Item_Pedido | Produtos que fazem parte de um pedido. | id_pedido, id_produto, quantidade, preço_unitario, subtotal |
-| Pagamento | Registro do pagamento relacionado a um pedido. | id_pagamento, forma, valor, data, status |
+| Pagamento | Autorização de cada forma de pagamento usada no pedido. | id_pagamento, forma, valor, número de parcelas, data da autorização, status |
+| Conta_Receber | Valor a receber gerado por um pagamento autorizado. | id_conta_receber, número da parcela, valor bruto, valor líquido, data prevista, data do recebimento, status |
 | Entrega | Informações da entrega dos pedidos da loja virtual. | id_entrega, endereço_entrega, data_prevista, data_entrega, status |
 | Fornecedor | Empresa que abastece a loja com mercadorias. | id_fornecedor, razão social, CNPJ, telefone, e-mail |
 | Compra | Compra de reposição feita a um fornecedor. | id_compra, data, status, valor_total |
-| Item_Compra | Produtos que fazem parte de uma compra. | id_compra, id_produto, quantidade, custo_unitario |
-| Conta_Pagar | Parcela a pagar gerada por uma compra. | id_conta_pagar, número da parcela, valor, vencimento, status |
+| Item_Compra | Produtos que fazem parte de uma compra. | id_compra, id_produto, quantidade comprada, custo_unitario, quantidade recebida |
+| Conta_Pagar | Parcela a pagar gerada por uma compra. | id_conta_pagar, número da parcela, valor, vencimento, valor pago, status |
+| Pagamento_Conta | Cada pagamento feito em uma parcela de conta a pagar. | id_pagamento_conta, valor pago, data do pagamento, forma de pagamento |
 
 Observação: o dicionário é preliminar, portanto os atributos podem ser ajustados durante as etapas de modelo lógico, normalização e validação. Atributos marcados como **derivados** são calculados a partir de outros dados e não precisam ser armazenados.
 
@@ -887,7 +1061,7 @@ Pessoa física (tutor de animal) que compra na loja física ou na loja virtual.
 
 ### Funcionário
 
-Colaborador que registra vendas e movimentações de mercadorias.
+Colaborador que registra vendas e movimentações de estoque.
 
 | Atributo | Descrição | Regra/Observação |
 |---|---|---|
@@ -924,18 +1098,36 @@ Produto comercializado pela empresa.
 | controla_validade | Indica se o produto exige controle de lote e validade | Sim ou não; quando sim, lote e validade são obrigatórios no estoque (RN11) |
 | id_categoria | Categoria à qual o produto pertence | Obrigatório; todo produto pertence a uma categoria (RN04) |
 
-### Estoque
+### Lote
 
-Quantidade disponível de cada produto, por lote, no estoque único compartilhado pela loja física e pela loja virtual (RP01).
+Cada lote de um produto guardado no estoque único compartilhado pela loja física e pela loja virtual (RP01). Substitui a antiga entidade Estoque.
 
 | Atributo | Descrição | Regra/Observação |
 |---|---|---|
-| id_estoque | Identificador do registro de estoque | Identificação única |
-| id_produto | Produto armazenado | Obrigatório |
-| lote | Lote do produto | Obrigatório para produtos com controle de validade (RN11) |
-| quantidade | Quantidade disponível | Não pode ser negativa; diminui a cada venda e aumenta a cada recebimento (RN06, RN08) |
-| data_validade | Data de validade do lote | Obrigatória para produtos com controle de validade; lotes vencidos saem da venda (RP09) |
+| id_lote | Identificador do lote | Identificação única |
+| id_produto | Produto do lote | Obrigatório |
+| codigo_lote | Código do lote informado pelo fabricante | Obrigatório para produtos com controle de validade (RN11) |
+| data_validade | Data de validade do lote | Obrigatória para produtos com controle de validade; lotes vencidos saem da venda por movimentação de perda (RP09) |
 | data_entrada | Data de entrada do lote no estoque | Obrigatória |
+| saldo_fisico | Quantidade que está fisicamente no estoque | **Derivado:** soma das entradas, devoluções e ajustes positivos menos as vendas, perdas e ajustes negativos do lote (RN19); não pode ser negativo |
+| quantidade_reservada | Quantidade separada para pedidos da loja virtual | **Derivado:** reservas do lote ainda não liberadas nem convertidas em venda (RN21) |
+| quantidade_disponivel | Quantidade que ainda pode ser vendida ou reservada | **Derivado:** saldo_fisico − quantidade_reservada (RN07) |
+
+### Movimentacao_Estoque
+
+Registro de cada alteração de quantidade em um lote. É o histórico do estoque: os registros não podem ser alterados nem excluídos (RN19).
+
+| Atributo | Descrição | Regra/Observação |
+|---|---|---|
+| id_movimentacao | Identificador da movimentação | Identificação única |
+| id_lote | Lote movimentado | Obrigatório |
+| tipo | Tipo da movimentação | Valores: entrada, reserva, liberação de reserva, venda, devolução, perda, ajuste positivo, ajuste negativo |
+| quantidade | Quantidade movimentada | Obrigatória; maior que zero; o tipo define se soma ou subtrai |
+| data_hora | Data e hora da movimentação | Obrigatória; preenchida automaticamente |
+| motivo | Explicação da movimentação | Obrigatório em perdas, ajustes e devoluções (RP11) |
+| id_funcionario | Funcionário responsável | Obrigatório nas movimentações feitas por funcionários; vazio nas reservas e liberações automáticas da loja virtual |
+| id_pedido + id_produto | Item do pedido que originou a movimentação | Obrigatório em reservas, liberações, vendas e devoluções; indica de qual lote saiu cada venda (RN20) |
+| id_compra + id_produto | Item da compra que originou a entrada | Obrigatório nas movimentações de entrada (RN25) |
 
 ### Pedido
 
@@ -961,22 +1153,38 @@ Cada produto vendido dentro de um pedido.
 |---|---|---|
 | id_pedido | Pedido ao qual o item pertence | Compõe a identificação do item |
 | id_produto | Produto vendido | Compõe a identificação do item; o mesmo produto não se repete no pedido |
-| quantidade | Quantidade vendida do produto | Obrigatória; maior que zero; não pode superar o estoque disponível (RN07) |
+| quantidade | Quantidade vendida do produto | Obrigatória; maior que zero; não pode superar a quantidade disponível (RN07); os lotes de saída ficam nas movimentações do item (RN20) |
 | preco_unitario | Preço praticado no momento da venda | Obrigatório; preserva o valor original mesmo que o preço do produto mude (RN13) |
 | subtotal | Valor do item | **Derivado:** quantidade × preco_unitario |
 
 ### Pagamento
 
-Registro do pagamento de um pedido.
+Autorização de uma forma de pagamento usada no pedido. Registra se o pagamento foi aprovado, e não se o dinheiro já entrou na conta (RN24).
 
 | Atributo | Descrição | Regra/Observação |
 |---|---|---|
 | id_pagamento | Identificador do pagamento | Identificação única |
 | id_pedido | Pedido pago | Obrigatório; todo pedido tem ao menos um pagamento (RN15) |
-| forma_pagamento | Forma utilizada | Ex.: dinheiro, cartão de débito, cartão de crédito, Pix |
-| valor | Valor pago | Obrigatório; maior que zero |
-| data_pagamento | Data do pagamento | Obrigatória quando o pagamento for confirmado |
-| status | Situação do pagamento | Ex.: pendente, aprovado, recusado, estornado |
+| forma_pagamento | Forma utilizada | Ex.: dinheiro, Pix, cartão de débito, cartão de crédito |
+| valor | Valor autorizado | Obrigatório; maior que zero |
+| numero_parcelas | Quantidade de parcelas | 1 a 3 no cartão de crédito; 1 nas demais formas (RN24) |
+| data_autorizacao | Data e hora da autorização | Preenchida quando o pagamento é autorizado |
+| status | Situação do pagamento | Valores: pendente, autorizado, recusado, estornado |
+
+### Conta_Receber
+
+Valor que a empresa tem a receber por um pagamento autorizado. Separa o que já entrou na conta do que ainda está pendente (RN24).
+
+| Atributo | Descrição | Regra/Observação |
+|---|---|---|
+| id_conta_receber | Identificador da conta a receber | Identificação única |
+| id_pagamento | Pagamento que gerou a conta | Obrigatório; só pagamentos autorizados geram contas a receber |
+| numero_parcela | Número da parcela | Ex.: 2 de 3 no crédito parcelado; 1 nas demais formas |
+| valor_bruto | Valor da parcela | Obrigatório; a soma das parcelas é igual ao valor do pagamento |
+| valor_liquido | Valor que efetivamente entra na conta | Valor bruto menos a taxa da operadora do cartão; igual ao bruto em dinheiro e Pix |
+| data_prevista | Data prevista de recebimento | Obrigatória; ex.: no mesmo dia em dinheiro e Pix, a cada 30 dias por parcela no crédito |
+| data_recebimento | Data em que o valor entrou na conta | Preenchida na conciliação; vazia enquanto o valor estiver pendente |
+| status | Situação da conta | Valores: pendente, recebida, cancelada (quando o pagamento é estornado) |
 
 ### Entrega
 
@@ -1012,8 +1220,8 @@ Compra de reposição feita a um fornecedor.
 | id_compra | Identificador da compra | Identificação única |
 | id_fornecedor | Fornecedor da compra | Obrigatório; toda compra pertence a um fornecedor (RN10) |
 | data_compra | Data da compra | Obrigatória |
-| status | Situação da compra | Ex.: solicitada, recebida, cancelada |
-| valor_total | Valor total da compra | **Derivado:** soma de quantidade × custo_unitario dos itens |
+| status | Situação da compra | Valores: solicitada, recebida parcialmente, recebida, cancelada (RN25) |
+| valor_total | Valor total da compra | **Derivado:** soma de quantidade_comprada × custo_unitario dos itens |
 
 ### Item_Compra (entidade associativa entre Compra e Produto)
 
@@ -1023,8 +1231,9 @@ Cada produto incluído em uma compra.
 |---|---|---|
 | id_compra | Compra à qual o item pertence | Compõe a identificação do item |
 | id_produto | Produto comprado | Compõe a identificação do item |
-| quantidade | Quantidade comprada | Obrigatória; maior que zero |
+| quantidade_comprada | Quantidade comprada | Obrigatória; maior que zero |
 | custo_unitario | Custo pago ao fornecedor por unidade | Obrigatório; preserva o custo daquela compra |
+| quantidade_recebida | Quantidade que já chegou | **Derivado:** soma das movimentações de entrada do item; pode ser menor que a comprada enquanto houver entregas pendentes (RN25) |
 
 ### Conta_Pagar
 
@@ -1037,12 +1246,24 @@ Parcela a pagar gerada por uma compra de reposição.
 | numero_parcela | Número da parcela | Ex.: 1 de 3 |
 | valor | Valor da parcela | Obrigatório; maior que zero |
 | data_vencimento | Data limite para pagamento | Obrigatória |
-| data_pagamento | Data em que a conta foi paga | Preenchida quando a conta é paga |
-| status | Situação da conta | Ex.: pendente, paga, cancelada |
+| valor_pago | Quanto já foi pago da parcela | **Derivado:** soma dos pagamentos da conta (RN23) |
+| status | Situação da conta | Valores: pendente, paga parcialmente, paga, cancelada (RN23) |
+
+### Pagamento_Conta
+
+Cada pagamento feito em uma parcela de conta a pagar. Preserva o histórico financeiro quando uma parcela é paga em mais de uma vez (RN23).
+
+| Atributo | Descrição | Regra/Observação |
+|---|---|---|
+| id_pagamento_conta | Identificador do pagamento | Identificação única |
+| id_conta_pagar | Parcela paga | Obrigatório |
+| valor_pago | Valor pago nesta vez | Obrigatório; maior que zero; a soma dos pagamentos não pode passar do valor da parcela |
+| data_pagamento | Data do pagamento | Obrigatória |
+| forma_pagamento | Forma utilizada | Ex.: Pix, boleto, transferência |
 
 ## 16. DER
 
-Diagrama em notação de Peter Chen. Retângulo = entidade · losango = relacionamento · retângulo com losango = entidade associativa. A cardinalidade (mínimo, máximo) junto a cada entidade indica em quantas ocorrências do relacionamento uma ocorrência dessa entidade participa, na mesma notação do manual. Ex.: CLIENTE (0,N) — realiza — (1,1) PEDIDO: um cliente realiza de 0 a N pedidos, e cada pedido é realizado por exatamente um cliente. Abaixo de cada relacionamento aparece a regra de negócio que o sustenta.
+Diagrama em notação de Peter Chen. Retângulo = entidade · losango = relacionamento · retângulo com losango = entidade associativa. A cardinalidade (mínimo, máximo) junto a cada entidade indica em quantas ocorrências do relacionamento uma ocorrência dessa entidade participa, na mesma notação do manual. Ex.: CLIENTE (0,N) — realiza — (1,1) PEDIDO: um cliente realiza de 0 a N pedidos, e cada pedido é realizado por exatamente um cliente. Abaixo de cada relacionamento aparece a regra de negócio que o sustenta. Em laranja, as entidades incluídas após a devolutiva (Lote, Movimentação_Estoque, Conta_Receber e Pagamento_Conta).
 
 ### Visão geral
 
@@ -1052,7 +1273,7 @@ Diagrama em notação de Peter Chen. Retângulo = entidade · losango = relacion
 
 ![DER — com atributos](der/DER_com_atributos.png)
 
-Legenda dos atributos: ● identificador (sublinhado) · ○ atributo simples · (composto) atributo formado por partes · (derivado) calculado, não armazenado. Fornecedor × Produto (N:N, RN09) é representado por meio de COMPRA e ITEM_COMPRA, sem ligação direta entre as duas entidades. Versão em PDF: [`der/DER.pdf`](der/DER.pdf).
+Legenda dos atributos: ● identificador (sublinhado) · ○ atributo simples · (composto) atributo formado por partes · (derivado) calculado, não armazenado. Fornecedor × Produto (N:N, RN09) é representado por meio de COMPRA e ITEM_COMPRA, sem ligação direta entre as duas entidades. O lote de onde saiu cada venda (RN20) é registrado em MOVIMENTACAO_ESTOQUE, ligada ao ITEM_PEDIDO e ao LOTE. Versão em PDF: [`der/DER.pdf`](der/DER.pdf).
 
 ## 17. Justificativas técnicas
 
@@ -1068,11 +1289,19 @@ Legenda dos atributos: ● identificador (sublinhado) · ○ atributo simples ·
 
 **Separação entre Produto e Categoria:** Cada produto pertence a uma categoria, e uma categoria agrupa vários produtos (RN04). A separação evita repetir as informações da categoria em cada produto e permite relatórios por categoria.
 
-**Estoque como entidade própria:** A empresa possui um único estoque, compartilhado pela loja física e pela loja virtual (RP01), e precisa controlar a validade dos produtos. Como um mesmo produto pode ter lotes com validades diferentes, a quantidade e a validade foram registradas por lote na entidade Estoque (RN11). Toda venda, em qualquer canal, reduz o estoque (RN06), e não é permitido vender acima do disponível (RN07).
+**Lote como entidade própria:** A empresa possui um único estoque, compartilhado pela loja física e pela loja virtual (RP01), e precisa controlar a validade dos produtos. Como um mesmo produto pode ter lotes com validades diferentes, cada lote é um registro da entidade Lote (RN11). A entidade se chamava Estoque na primeira versão; o nome mudou porque cada registro representa um lote, e não o estoque inteiro do produto.
+
+**Movimentação de estoque e histórico:** Na primeira versão, a quantidade ficava gravada direto no lote e era sobrescrita a cada venda ou recebimento, o que apagava o histórico. Agora, toda alteração de quantidade é uma movimentação do lote, com tipo, quantidade, data, hora, responsável e motivo (RN19). Os saldos do lote passam a ser derivados das movimentações, que não podem ser alteradas nem excluídas: um erro é corrigido por um novo ajuste. Assim, qualquer diferença de estoque pode ser explicada pelo histórico.
+
+**Lote de cada venda:** Um item vendido pode sair de mais de um lote, e um lote abastece várias vendas. A movimentação de venda liga o item do pedido ao lote de onde as unidades saíram, com a quantidade retirada de cada um (RN20). Por isso o lote não foi colocado como atributo do Item_Pedido: um único campo não comportaria uma venda que usa dois lotes.
+
+**Reserva separada da baixa:** Na loja virtual, o produto precisa ficar garantido para o cliente entre o pedido e o envio, mas ainda não saiu fisicamente do estoque. Por isso o modelo separa a reserva (que reduz a quantidade disponível) da venda (que reduz o saldo físico) (RN21). Isso permite tratar o cancelamento corretamente: um produto apenas reservado só tem a reserva liberada, enquanto um produto já baixado volta por devolução ou é registrado como perda (RN22). A reserva não virou entidade própria porque é uma movimentação do mesmo histórico, e não um objeto com vida própria.
 
 **Canal de venda no Pedido:** O modelo mantém uma única estrutura de clientes, produtos e pedidos para os dois canais, evitando os cadastros duplicados que a empresa tem hoje. O atributo canal_venda diferencia a origem de cada pedido (RN05) e permite comparar o desempenho da loja física e da loja virtual.
 
-**Separação entre Pedido e Pagamento:** O pedido representa a venda; o pagamento representa a forma e a situação financeira dessa venda. A separação permite registrar pagamentos pendentes, recusados ou estornados e mais de uma forma de pagamento no mesmo pedido (RN15).
+**Separação entre Pedido e Pagamento:** O pedido representa a venda; o pagamento representa a forma e a autorização financeira dessa venda. A separação permite registrar pagamentos pendentes, recusados ou estornados e mais de uma forma de pagamento no mesmo pedido (RN15).
+
+**Pagamento autorizado separado do valor recebido (Conta_Receber):** Um pagamento aprovado no cartão não significa que o dinheiro já entrou na conta: no crédito em 3x, por exemplo, a empresa recebe uma parcela por mês, descontada a taxa da operadora. Por isso o pagamento registra a autorização, e cada valor a receber vira uma conta a receber, com data prevista, data do recebimento e valor líquido (RN24). Com isso, o fluxo de caixa separa o que foi autorizado, o que foi recebido e o que ainda está pendente.
 
 **Entrega opcional: Pedido (0,1) — Entrega (1,1):** Somente pedidos da loja virtual com entrega em casa geram uma entrega; vendas no balcão e retiradas na loja não geram (RN17). Por isso, a entrega é opcional para o pedido e possui atributos próprios, como endereço, datas e status.
 
@@ -1083,6 +1312,10 @@ Legenda dos atributos: ● identificador (sublinhado) · ○ atributo simples ·
 **Compra e Item_Compra:** Um produto pode ser comprado de vários fornecedores, e um fornecedor pode fornecer vários produtos (RN09). As entidades Compra e Item_Compra registram essa relação e o custo pago em cada compra (RN10), integrando a reposição ao controle de estoque (RN08).
 
 **Conta_Pagar como entidade própria:** Uma compra de reposição pode ser paga em parcelas, cada uma com valor, vencimento e situação próprios (RN12). Por isso, as contas a pagar foram separadas da compra, assim como os pagamentos foram separados do pedido, integrando o processo de compras ao financeiro.
+
+**Pagamentos de uma parcela (Pagamento_Conta):** Na primeira versão, a conta a pagar tinha um único campo de data de pagamento, o que só permitia registrar um pagamento por parcela. Agora cada pagamento é um registro de Pagamento_Conta, e a parcela só fica paga quando a soma dos pagamentos atinge o seu valor (RN23). Assim, um pagamento parcial não se perde, e o histórico financeiro fica completo.
+
+**Compra recebida em partes:** O fornecedor pode entregar uma compra em mais de uma vez. Como cada entrega gera movimentações de entrada ligadas ao item da compra, a quantidade recebida é derivada dessas movimentações e pode ser comparada com a quantidade comprada (RN25), sem precisar de uma entidade separada para cada recebimento.
 
 **Cliente e Funcionário separados:** Foi considerada a generalização Pessoa, mas as duas entidades têm finalidades e atributos diferentes: o cliente realiza pedidos e precisa de e-mail para a loja virtual; o funcionário registra vendas e possui cargo, login e senha. Os dados em comum se limitam a nome e CPF, e um funcionário que compra na loja é cadastrado também como cliente. A separação mantém o modelo mais simples, e a generalização fica como possível evolução.
 
@@ -1096,15 +1329,117 @@ Legenda dos atributos: ● identificador (sublinhado) · ○ atributo simples ·
 
 Essas decisões buscam evitar duplicidade de informações, representar corretamente os relacionamentos entre os dados e integrar vendas, estoque, compras e financeiro, mantendo o modelo preparado para as próximas etapas, como modelo lógico, normalização e implementação do banco de dados.
 
+### 17.1 Validação do modelo com cenários de teste
+
+Seguindo a recomendação da devolutiva, o modelo foi testado com situações reais de operação: vendas simultâneas, produtos vencidos, lotes com validades diferentes, compras recebidas em partes, pagamentos parciais, crédito parcelado e cancelamentos. Em cada cenário, a tabela mostra os registros que o modelo guarda. Os valores são exemplos.
+
+#### Cenário 1 — Duas vendas simultâneas da última unidade
+
+**Situação:** a Ração para Gato 1 kg tem uma única unidade, no lote L-101. Às 10h00 um cliente passa essa unidade no caixa e, no mesmo segundo, outro cliente faz um pedido dela na loja virtual.
+
+| Ordem | Registro | Resultado |
+|---|---|---|
+| 1 | MOVIMENTACAO_ESTOQUE: venda, 1 un., lote L-101, item do pedido 5021 (caixa) | Gravada primeiro; quantidade disponível do L-101 passa para 0 |
+| 2 | Tentativa de reserva de 1 un. para o pedido 5022 (loja virtual) | Recusada: a quantidade disponível é 0 (RN07); o pedido não é concluído e o produto sai do catálogo (RF17) |
+
+**O que o modelo garante:** como a disponibilidade é calculada pelas movimentações do lote, e cada venda ou reserva é uma operação única (RNF10), as duas vendas não conseguem usar a mesma unidade. O saldo nunca fica negativo.
+
+#### Cenário 2 — Venda que usa dois lotes com validades diferentes
+
+**Situação:** a Ração para Cão 15 kg tem 2 unidades no lote L-201 (vence em 10/11/2026) e 10 no lote L-202 (vence em 15/03/2027). Um cliente compra 3 unidades no caixa (pedido 5030).
+
+| Registro | Entidade | Dados |
+|---|---|---|
+| Item do pedido | ITEM_PEDIDO | pedido 5030, Ração para Cão 15 kg, quantidade 3, preço R$ 189,90 |
+| Saída do primeiro lote | MOVIMENTACAO_ESTOQUE | venda, 2 un., lote L-201, item 5030 |
+| Saída do segundo lote | MOVIMENTACAO_ESTOQUE | venda, 1 un., lote L-202, item 5030 |
+
+**O que o modelo garante:** a venda sai primeiro do lote que vence antes (RN20, RF11), e a consulta às movimentações do item 5030 mostra exatamente de qual lote saiu cada unidade. Se houver um recall do lote L-201, é possível saber quais clientes receberam produtos dele.
+
+#### Cenário 3 — Produto vencido no estoque
+
+**Situação:** em 21/10/2026, o estoquista encontra 4 unidades do Petisco Dental no lote L-305, que venceu em 20/10/2026.
+
+| Registro | Entidade | Dados |
+|---|---|---|
+| Bloqueio | LOTE L-305 | data_validade 20/10/2026 já passou: o sistema impede a venda e a reserva (RF12) |
+| Retirada da venda | MOVIMENTACAO_ESTOQUE | perda, 4 un., lote L-305, motivo "validade expirada", estoquista responsável, autorizada pela gerência (RP11) |
+
+**O que o modelo garante:** o saldo do lote vai para 0 (RP09), mas o histórico mostra quando o lote entrou, quanto foi vendido e quanto foi perdido. Isso permite medir as perdas por vencimento e ajustar as próximas compras.
+
+#### Cenário 4 — Compra recebida em duas entregas
+
+**Situação:** a compra 125, feita ao Fornecedor X, tem 50 unidades da Ração A e 30 da Ração B. Na primeira entrega (26/10) chegam 50 da Ração A e só 10 da Ração B; as outras 20 chegam em 30/10, de outro lote.
+
+| Data | Registro | Situação depois do registro |
+|---|---|---|
+| 26/10 | Entrada de 50 un. da Ração A (lote A-77) e 10 un. da Ração B (lote B-12), ligadas aos itens da compra 125 | Ração A: recebida 50 de 50; Ração B: recebida 10 de 30; compra "recebida parcialmente" |
+| 30/10 | Entrada de 20 un. da Ração B (lote B-15), ligada ao item da Ração B | Ração B: recebida 30 de 30; compra "recebida" |
+
+**O que o modelo garante:** a quantidade recebida é derivada das entradas (RN25), então a compra mostra o que ainda falta chegar. Como a segunda entrega veio de outro lote, cada lote tem a sua validade registrada.
+
+#### Cenário 5 — Pagamento parcial de uma parcela ao fornecedor
+
+**Situação:** a compra 125 custou R$ 3.000,00, divididos em 3 parcelas de R$ 1.000,00. A primeira vence em 10/11 e é paga em duas vezes.
+
+| Data | Registro | Situação da parcela 1 |
+|---|---|---|
+| 10/11 | PAGAMENTO_CONTA: R$ 600,00 via Pix | valor pago R$ 600,00; "paga parcialmente"; saldo devedor R$ 400,00 |
+| 17/11 | PAGAMENTO_CONTA: R$ 400,00 via boleto | valor pago R$ 1.000,00; "paga" |
+
+**O que o modelo garante:** os dois pagamentos ficam guardados, com data e forma, e a parcela só é considerada paga quando a soma chega ao seu valor (RN23).
+
+#### Cenário 6 — Venda no crédito em 3x: autorizado, recebido e pendente
+
+**Situação:** em 26/10, um cliente faz o pedido 5040 de R$ 300,00 na loja virtual e paga no cartão de crédito em 3x sem juros. A taxa da operadora é de 3% (exemplo).
+
+| Registro | Entidade | Dados |
+|---|---|---|
+| Autorização | PAGAMENTO | R$ 300,00, crédito, 3 parcelas, autorizado em 26/10 |
+| Parcela 1 | CONTA_RECEBER | bruto R$ 100,00, líquido R$ 97,00, prevista para 25/11 |
+| Parcela 2 | CONTA_RECEBER | bruto R$ 100,00, líquido R$ 97,00, prevista para 25/12 |
+| Parcela 3 | CONTA_RECEBER | bruto R$ 100,00, líquido R$ 97,00, prevista para 24/01 |
+
+**Fluxo de caixa em 30/11:** autorizado R$ 300,00; recebido R$ 97,00 (parcela 1, conciliada em 25/11); pendente R$ 194,00 (parcelas 2 e 3).
+
+**O que o modelo garante:** a venda não aparece como dinheiro em caixa antes de entrar na conta (RN24), e o financeiro sabe quanto ainda vai receber e quando.
+
+#### Cenário 7 — Cancelamento de um pedido apenas reservado
+
+**Situação:** em 26/10, o cliente faz o pedido 5050 na loja virtual com 2 unidades da Ração para Cão 15 kg, e o pagamento por Pix não é confirmado.
+
+| Ordem | Registro | Efeito no lote L-202 |
+|---|---|---|
+| 1 | MOVIMENTACAO_ESTOQUE: reserva, 2 un., item 5050 | Saldo físico 9; reservado 2; disponível 7 |
+| 2 | Pagamento não confirmado: status "recusado" | Nenhum valor a receber é gerado |
+| 3 | MOVIMENTACAO_ESTOQUE: liberação de reserva, 2 un., item 5050 | Saldo físico 9; reservado 0; disponível 9 |
+| 4 | PEDIDO 5050: status "cancelado" | — |
+
+**O que o modelo garante:** como os produtos nunca saíram do estoque, não há devolução: só a reserva é liberada (RN22). O saldo físico não muda em nenhum momento.
+
+#### Cenário 8 — Cancelamento de uma venda já baixada
+
+**Situação:** no caixa, o pedido 5060 (1 Shampoo Neutro do lote L-410 e 1 Ração A do lote A-77) é pago com cartão de débito e a baixa é feita. Antes de sair da loja, o cliente desiste da compra; a embalagem da ração rasgou no balcão.
+
+| Ordem | Registro | Dados |
+|---|---|---|
+| 1 | Autorização da gerência | Exigida para cancelar na loja física (RP07) |
+| 2 | MOVIMENTACAO_ESTOQUE: devolução | 1 un. do shampoo volta ao lote L-410, motivo "cancelamento no caixa" |
+| 3 | MOVIMENTACAO_ESTOQUE: perda | 1 un. da Ração A, lote A-77, motivo "embalagem danificada" |
+| 4 | PAGAMENTO: status "estornado" | A conta a receber ligada a ele passa para "cancelada" |
+| 5 | PEDIDO 5060: status "cancelado" | — |
+
+**O que o modelo garante:** os produtos já baixados voltam ao lote de origem por devolução, ou são registrados como perda quando não podem voltar à venda (RN22). O histórico mostra a venda, a devolução e a perda, e o financeiro não conta um valor que foi estornado.
+
 ## 18. Conclusão
 
 Esta primeira entrega transformou a situação da Petly Club, um pet shop de pequeno porte inspirado na Cobasi e no Sam's Club, em um modelo conceitual de dados. O ponto de partida foi o problema real da empresa: duas lojas, uma física e uma virtual, que compartilham o mesmo estoque, mas registram vendas, clientes e produtos em sistemas e planilhas que não se comunicam, gerando cadastros duplicados, estoque desatualizado e retrabalho no financeiro.
 
 Seguindo o caminho proposto no manual, a equipe partiu da caracterização da empresa e dos processos de negócio, identificou os problemas e necessidades, levantou os requisitos, as regras de negócio e as políticas organizacionais e só então definiu as entidades, os atributos, os relacionamentos e as cardinalidades. Cada decisão de modelagem foi apoiada em uma regra de negócio numerada, o que permite responder, para cada elemento do DER, de onde veio aquela decisão.
 
-O modelo resultante possui 13 entidades e integra os quatro processos centrais da empresa: vendas nos dois canais, controle de estoque por lote e validade, compras de reposição com fornecedores e controle financeiro. Os relacionamentos N:N entre Pedido e Produto e entre Compra e Produto foram resolvidos pelas entidades associativas Item_Pedido e Item_Compra, que guardam as informações próprias de cada relação, como a quantidade, o preço praticado e o custo de cada compra. A delimitação do escopo, restrito à comercialização de produtos, permitiu tratar esses processos com profundidade.
+Depois da devolutiva, o modelo foi testado com situações operacionais mais complexas e passou a ter 16 entidades. O estoque deixou de guardar apenas o saldo e passou a registrar cada movimentação por lote, o que permite saber de qual lote saiu cada venda, separar o que está reservado do que já foi baixado e tratar corretamente cancelamentos, devoluções, perdas e compras recebidas em partes. No financeiro, o modelo passou a separar o pagamento autorizado do valor efetivamente recebido e a registrar pagamentos parciais das parcelas devidas aos fornecedores. Os requisitos não funcionais ganharam critérios mensuráveis, e oito cenários de teste mostram o comportamento do modelo nessas situações.
 
-Esse modelo é a base para as próximas etapas do projeto: o modelo lógico, a normalização, o modelo físico e a implementação do banco de dados, que darão suporte às análises de BI e IA previstas para o ERP.
+Os relacionamentos N:N entre Pedido e Produto e entre Compra e Produto continuam resolvidos pelas entidades associativas Item_Pedido e Item_Compra, que guardam a quantidade, o preço praticado e o custo de cada compra. Esse modelo é a base para as próximas etapas do projeto: o modelo lógico, a normalização, o modelo físico e a implementação do banco de dados, com as regras transacionais necessárias para vendas simultâneas e cancelamentos, que darão suporte às análises de BI e IA previstas para o ERP.
 
 ## Uso de Inteligência Artificial
 
@@ -1123,4 +1458,12 @@ Esse modelo é a base para as próximas etapas do projeto: o modelo lógico, a n
 
 ### Documentos do repositório
 
-Cada etapa também está disponível em PDF na pasta [`docs/`](docs/).
+- **Documentação completa em PDF:** [`docs/Documentacao_Completa_Grupo7.pdf`](docs/Documentacao_Completa_Grupo7.pdf)
+- **Diários de bordo:** [`diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf`](diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf)
+- **Diários de bordo preenchidos depois da aula** (auditoria de 24/09, normalização de 01/10 e DDL de 15/10, preenchidos em 26/10/2026):
+  - [`diarios-de-bordo/Diario_Auditoria_24-09_Grupo7.pdf`](diarios-de-bordo/Diario_Auditoria_24-09_Grupo7.pdf)
+  - [`diarios-de-bordo/Diario_Aula8_Normalizacao_01-10_Grupo7.pdf`](diarios-de-bordo/Diario_Aula8_Normalizacao_01-10_Grupo7.pdf)
+  - [`diarios-de-bordo/Diario_Aula9_DDL_15-10_Grupo7.pdf`](diarios-de-bordo/Diario_Aula9_DDL_15-10_Grupo7.pdf), com o script e os testes em [`diarios-de-bordo/aula9_sql/`](diarios-de-bordo/aula9_sql/)
+- **DER:** [`der/DER.pdf`](der/DER.pdf)
+- **Fluxogramas:** pasta [`fluxogramas/`](fluxogramas/)
+
