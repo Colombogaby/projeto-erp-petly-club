@@ -1,6 +1,9 @@
 # Projeto ERP — Petly Club
 
-Primeira entrega do Projeto Integrador da disciplina **Modelagem de Banco de Dados** (UNICID, 2026/2): do problema real ao modelo conceitual de dados. **Versão revisada após a devolutiva do professor** (veja [Revisão após a devolutiva](#revisão-após-a-devolutiva)).
+Projeto Integrador da disciplina **Modelagem de Banco de Dados** (UNICID, 2026/2): do problema real ao banco de dados implementado e consultado.
+
+- **Parte 1 — Primeira entrega (seções 1 a 18):** do problema real ao modelo conceitual de dados, **revisada após a devolutiva do professor** (veja [Revisão após a devolutiva](#revisão-após-a-devolutiva)).
+- **Parte 2 — Entrega final (seções 19 a 28):** modelo lógico, normalização, dicionário de dados, SQL, massa de dados, consultas gerenciais e de auditoria e possibilidades de BI e IA. Para executar o banco, veja [Como executar o projeto](#como-executar-o-projeto).
 
 ## Sumário
 
@@ -22,7 +25,21 @@ Primeira entrega do Projeto Integrador da disciplina **Modelagem de Banco de Dad
 15. [Dicionário de dados conceitual](#15-dicionário-de-dados-conceitual)
 16. [DER](#16-der)
 17. [Justificativas técnicas](#17-justificativas-técnicas) — inclui [17.1 Cenários de teste](#171-validação-do-modelo-com-cenários-de-teste)
-18. [Conclusão](#18-conclusão)
+18. [Conclusão da primeira entrega](#18-conclusão-da-primeira-entrega)
+
+**Parte 2 — Entrega final**
+
+19. [Revisão do modelo conceitual na entrega final](#19-revisão-do-modelo-conceitual-na-entrega-final)
+20. [Modelo lógico relacional](#20-modelo-lógico-relacional)
+21. [Normalização](#21-normalização-1fn-2fn-e-3fn)
+22. [Dicionário de dados e implementação SQL](#22-dicionário-de-dados-e-implementação-sql) — inclui [Como executar o projeto](#como-executar-o-projeto)
+23. [Massa de dados](#23-massa-de-dados)
+24. [Consultas gerenciais](#24-consultas-gerenciais)
+25. [Consultas de auditoria](#25-consultas-de-auditoria)
+26. [Análise de dados, BI e IA](#26-análise-de-dados-bi-e-ia)
+27. [Histórico e evolução do projeto](#27-histórico-e-evolução-do-projeto)
+28. [Conclusão](#28-conclusão)
+
 - [Uso de Inteligência Artificial](#uso-de-inteligência-artificial)
 
 ## Revisão após a devolutiva
@@ -1263,7 +1280,7 @@ Cada pagamento feito em uma parcela de conta a pagar. Preserva o histórico fina
 
 ## 16. DER
 
-Diagrama em notação de Peter Chen. Retângulo = entidade · losango = relacionamento · retângulo com losango = entidade associativa. A cardinalidade (mínimo, máximo) junto a cada entidade indica em quantas ocorrências do relacionamento uma ocorrência dessa entidade participa, na mesma notação do manual. Ex.: CLIENTE (0,N) — realiza — (1,1) PEDIDO: um cliente realiza de 0 a N pedidos, e cada pedido é realizado por exatamente um cliente. Abaixo de cada relacionamento aparece a regra de negócio que o sustenta. Em laranja, as entidades incluídas após a devolutiva (Lote, Movimentação_Estoque, Conta_Receber e Pagamento_Conta).
+Diagrama em notação de Peter Chen. Retângulo = entidade · losango = relacionamento · retângulo com losango = entidade associativa. A cardinalidade (mínimo, máximo) junto a cada entidade indica em quantas ocorrências do relacionamento uma ocorrência dessa entidade participa, na mesma notação do manual. Ex.: CLIENTE (0,N) — realiza — (1,1) PEDIDO: um cliente realiza de 0 a N pedidos, e cada pedido é realizado por exatamente um cliente. Abaixo de cada relacionamento aparece a regra de negócio que o sustenta. Em laranja, as entidades incluídas após a devolutiva (Lote, Movimentação_Estoque, Conta_Receber e Pagamento_Conta). Em verde, os relacionamentos incluídos na entrega final ([A2] e [A3], ver [seção 19](#19-revisão-do-modelo-conceitual-na-entrega-final)).
 
 ### Visão geral
 
@@ -1431,7 +1448,7 @@ Seguindo a recomendação da devolutiva, o modelo foi testado com situações re
 
 **O que o modelo garante:** os produtos já baixados voltam ao lote de origem por devolução, ou são registrados como perda quando não podem voltar à venda (RN22). O histórico mostra a venda, a devolução e a perda, e o financeiro não conta um valor que foi estornado.
 
-## 18. Conclusão
+## 18. Conclusão da primeira entrega
 
 Esta primeira entrega transformou a situação da Petly Club, um pet shop de pequeno porte inspirado na Cobasi e no Sam's Club, em um modelo conceitual de dados. O ponto de partida foi o problema real da empresa: duas lojas, uma física e uma virtual, que compartilham o mesmo estoque, mas registram vendas, clientes e produtos em sistemas e planilhas que não se comunicam, gerando cadastros duplicados, estoque desatualizado e retrabalho no financeiro.
 
@@ -1440,6 +1457,196 @@ Seguindo o caminho proposto no manual, a equipe partiu da caracterização da em
 Depois da devolutiva, o modelo foi testado com situações operacionais mais complexas e passou a ter 16 entidades. O estoque deixou de guardar apenas o saldo e passou a registrar cada movimentação por lote, o que permite saber de qual lote saiu cada venda, separar o que está reservado do que já foi baixado e tratar corretamente cancelamentos, devoluções, perdas e compras recebidas em partes. No financeiro, o modelo passou a separar o pagamento autorizado do valor efetivamente recebido e a registrar pagamentos parciais das parcelas devidas aos fornecedores. Os requisitos não funcionais ganharam critérios mensuráveis, e oito cenários de teste mostram o comportamento do modelo nessas situações.
 
 Os relacionamentos N:N entre Pedido e Produto e entre Compra e Produto continuam resolvidos pelas entidades associativas Item_Pedido e Item_Compra, que guardam a quantidade, o preço praticado e o custo de cada compra. Esse modelo é a base para as próximas etapas do projeto: o modelo lógico, a normalização, o modelo físico e a implementação do banco de dados, com as regras transacionais necessárias para vendas simultâneas e cancelamentos, que darão suporte às análises de BI e IA previstas para o ERP.
+
+# Parte 2 — Entrega final: do modelo ao banco implementado
+
+A partir daqui está a entrega final. O modelo conceitual das seções 1 a 18 (já revisado após a devolutiva) foi convertido em modelo lógico, normalizado até a 3FN, implementado em PostgreSQL 16, povoado com uma massa de dados de teste e consultado para produzir informação gerencial. Cada seção resume a decisão tomada e aponta o arquivo onde está o detalhe.
+
+**Teste de consistência:** em 29/10/2026 todos os scripts foram executados, na ordem da seção 22, em um banco vazio. As 16 tabelas, as 7 visões e os 5 gatilhos foram criados sem erro, a massa de dados foi carregada, os 23 comandos que o banco deve recusar (T01 a T23) terminaram em `ERROR`, os testes de UPDATE e DELETE foram aceitos e as 10 consultas de auditoria retornaram 0 linhas. A saída completa está em [`evidencias/saida_execucao_completa.txt`](evidencias/saida_execucao_completa.txt).
+
+## 19. Revisão do modelo conceitual na entrega final
+
+As mudanças de decisão de modelagem feitas depois da primeira entrega estão na tabela [Revisão após a devolutiva](#revisão-após-a-devolutiva), no início deste README. Ao converter o DER para o modelo lógico, a equipe fez mais três ajustes, aprovados e identificados como [A1], [A2] e [A3] em todos os artefatos:
+
+| Ajuste | O que mudou | Por quê |
+|---|---|---|
+| [A1] | `movimentacao_estoque` tem uma única coluna `id_produto`, usada pelas FKs compostas para `lote`, `item_pedido` e `item_compra` | Garante que a movimentação saia de um lote do mesmo produto do item vendido ou comprado (o banco recusa o contrário, teste T06) |
+| [A2] | Coluna `id_autorizador` em `movimentacao_estoque` | RP11 e RF35: perda e ajuste de estoque só com autorização registrada (teste T13) |
+| [A3] | Colunas `id_autorizador_desconto` e `id_autorizador_cancelamento` em `pedido` | Desconto e cancelamento no caixa precisam de quem autorizou (teste T12) |
+
+As regras de negócio que esses ajustes protegem já existiam na primeira entrega. [A1] é uma decisão do modelo lógico (chaves estrangeiras não aparecem no DER). [A2] e [A3] são relacionamentos novos e foram incluídos no DER da [seção 16](#16-der), destacados em verde:
+
+| Relacionamento novo | Cardinalidade | Regra |
+|---|---|---|
+| FUNCIONÁRIO — autoriza — MOVIMENTACAO_ESTOQUE | Funcionário (0,N) · Movimentação (0,1) | RP11, RF35 [A2] |
+| FUNCIONÁRIO — autoriza desconto — PEDIDO | Funcionário (0,N) · Pedido (0,1) | RP05, RF32 [A3] |
+| FUNCIONÁRIO — autoriza cancelamento — PEDIDO | Funcionário (0,N) · Pedido (0,1) | RP07, RF16 [A3] |
+
+O DER é gerado pelo script [`der/gerar_der.py`](der/gerar_der.py), o que permite atualizar o diagrama junto com o modelo.
+
+## 20. Modelo lógico relacional
+
+16 tabelas, uma para cada entidade do DER. Os dois relacionamentos N:N (Pedido–Produto e Compra–Produto) viraram as tabelas associativas `item_pedido` e `item_compra`, com chave primária composta. Notação: **PK** em negrito, *FK* em itálico e ***PK + FK*** nas chaves compostas.
+
+| Tabela | Colunas |
+|---|---|
+| categoria | **id_categoria**, nome, descricao |
+| cliente | **id_cliente**, nome, cpf, telefone, email |
+| funcionario | **id_funcionario**, nome, cpf, cargo, login, senha |
+| fornecedor | **id_fornecedor**, razao_social, cnpj, telefone, email |
+| produto | **id_produto**, nome, descricao, marca, codigo_barras, preco, estoque_minimo, controla_validade, *id_categoria* |
+| lote | **id_lote**, *id_produto*, codigo_lote, data_validade, data_entrada |
+| pedido | **id_pedido**, *id_cliente*, *id_funcionario*, data_pedido, canal_venda, tipo_recebimento, status, desconto, *id_autorizador_desconto*, *id_autorizador_cancelamento* |
+| item_pedido | ***id_pedido***, ***id_produto***, quantidade, preco_unitario |
+| pagamento | **id_pagamento**, *id_pedido*, forma_pagamento, valor, numero_parcelas, data_autorizacao, status |
+| conta_receber | **id_conta_receber**, *id_pagamento*, numero_parcela, valor_bruto, valor_liquido, data_prevista, data_recebimento, status |
+| entrega | **id_entrega**, *id_pedido*, logradouro, numero, complemento, bairro, cidade, uf, cep, data_prevista, data_entrega, status |
+| compra | **id_compra**, *id_fornecedor*, data_compra, status |
+| item_compra | ***id_compra***, ***id_produto***, quantidade_comprada, custo_unitario |
+| conta_pagar | **id_conta_pagar**, *id_compra*, numero_parcela, valor, data_vencimento, status |
+| pagamento_conta | **id_pagamento_conta**, *id_conta_pagar*, valor_pago, data_pagamento, forma_pagamento |
+| movimentacao_estoque | **id_movimentacao**, *id_lote*, *id_produto*, tipo, quantidade, data_hora, motivo, *id_funcionario*, *id_autorizador*, *id_pedido*, *id_compra* |
+
+**Principais decisões:**
+
+- **PK:** chave substituta `INTEGER GENERATED ALWAYS AS IDENTITY` em todas as tabelas independentes. CPF, CNPJ e código de barras são únicos, mas podem ser corrigidos no cadastro; por isso ficam como `UNIQUE`, e não como PK. O banco não aceita que a aplicação escolha o id (teste T02).
+- **PK composta:** em `item_pedido` (id_pedido, id_produto) e `item_compra` (id_compra, id_produto), porque o mesmo produto só aparece uma vez em cada pedido ou compra (testes T18 e T19).
+- **FK:** 21 chaves estrangeiras representam os relacionamentos 1:N do DER, todas com `ON DELETE RESTRICT`: excluir um cliente com pedidos é recusado (teste T07), para não apagar histórico de vendas.
+- **Atributos derivados** (saldos do lote, totais do pedido e da compra, valor pago, quantidade recebida) não são colunas: são calculados pelas visões `v_lote_saldo`, `v_pedido_total`, `v_compra_total`, `v_conta_pagar_saldo`, `v_item_compra_recebido` e `v_produto_estoque`.
+
+Documento completo, com a justificativa de cada PK, FK e restrição: [`docs/modelo-logico/Modelo_Logico_Petly_Club_Grupo7.pdf`](docs/modelo-logico/Modelo_Logico_Petly_Club_Grupo7.pdf) (versão editável em [`.docx`](docs/modelo-logico/Modelo_Logico_Petly_Club_Grupo7.docx))
+
+## 21. Normalização (1FN, 2FN e 3FN)
+
+Cada tabela foi analisada no formato do manual: estrutura analisada → dependência funcional → problema → correção. Os problemas reais encontrados no modelo conceitual foram:
+
+| Tabela | Forma normal | Problema | Correção |
+|---|---|---|---|
+| ENTREGA | 1FN | `endereco_entrega` era um atributo composto em um único campo | Decomposto em logradouro, numero, complemento, bairro, cidade, uf e cep |
+| PEDIDO, COMPRA | 3FN | `valor_total` dependia dos itens, e não da chave | Coluna removida; total calculado pelas visões `v_pedido_total` e `v_compra_total` |
+| ITEM_PEDIDO | 3FN | `subtotal` = quantidade × preco_unitario | Coluna removida; calculado na consulta |
+| LOTE, ITEM_COMPRA, CONTA_PAGAR | 3FN | Saldos, quantidade recebida e valor pago dependiam das movimentações e pagamentos | Colunas removidas; calculadas a partir de MOVIMENTACAO_ESTOQUE e PAGAMENTO_CONTA |
+| MOVIMENTACAO_ESTOQUE | 3FN | `id_produto` repetido nas FKs compostas e dependência transitiva id_lote → id_produto | Uma única coluna `id_produto`, mantida como redundância intencional e controlada pela FK composta (id_lote, id_produto) → LOTE [A1] |
+
+**2FN nas tabelas associativas:** em `item_pedido`, `quantidade` e `preco_unitario` dependem da chave toda (id_pedido, id_produto): o preço praticado é o daquele produto naquele pedido, e não o preço atual do produto (RN13). O nome e a marca do produto, que dependeriam só de id_produto, ficam em `produto`.
+
+Documento completo: [`docs/normalizacao/Normalizacao_Petly_Club.pdf`](docs/normalizacao/Normalizacao_Petly_Club.pdf)
+
+## 22. Dicionário de dados e implementação SQL
+
+O dicionário de dados descreve as 16 tabelas implementadas, campo a campo (tipo, tamanho, PK, FK, nulo, UNIQUE, DEFAULT e a regra que cada restrição protege), e foi conferido com o script: todas as 104 colunas do banco estão documentadas. O dicionário conceitual da seção 15 continua neste README como registro da primeira entrega.
+
+- Dicionário de dados: [`docs/dicionario-dados/Dicionario_de_Dados_Petly_Club_Grupo7.pdf`](docs/dicionario-dados/Dicionario_de_Dados_Petly_Club_Grupo7.pdf)
+- Script DDL: [`sql/ddl/petly_club_ddl_limpo.sql`](sql/ddl/petly_club_ddl_limpo.sql) — `CREATE DATABASE`, 16 `CREATE TABLE`, 16 PK, 21 FK, 11 UNIQUE, CHECK, DEFAULT e NOT NULL, 7 visões e 5 gatilhos
+
+**Restrições que o próprio banco garante (exemplos):**
+
+| Regra de negócio | Restrição | Teste |
+|---|---|---|
+| RN18: o mesmo CPF não pode ser cadastrado duas vezes | `uk_cliente_cpf` (UNIQUE) | T03 |
+| Preço de venda sempre maior que zero | `ck_produto_preco` (CHECK) | T09 |
+| Loja física não faz entrega | `ck_pedido_canal_recebimento` (CHECK) | T10 |
+| Crédito em até 3x; débito não parcela | `ck_pag_parcelas`, `ck_pag_parcelas_credito` (CHECK) | T15, T16 |
+| RN19: movimentação de estoque não é alterada nem excluída | gatilho `trg01_mov_imutavel` | T20 |
+| RN07: não vender sem saldo no lote | gatilho `trg02_mov_saldo` | T21 |
+| RF12: não dar entrada em lote vencido | gatilho `trg03_mov_validade` | T22 |
+| RN23: não pagar mais que o valor da parcela | gatilho `trg08_pagconta_valida` | T23 |
+
+As demais regras de transação (TRG-04 a TRG-07 e TRG-09 a TRG-18) ficam a cargo da aplicação e estão descritas na seção 6 do modelo lógico.
+
+### Como executar o projeto
+
+Pré-requisito: PostgreSQL 16 com o `psql` (o DDL usa `\c` para se conectar ao banco criado). A partir da raiz do repositório:
+
+```bash
+psql -U postgres -f sql/ddl/petly_club_ddl_limpo.sql                                   # 1. cria o banco e a estrutura
+psql -U postgres -d petly_club -f "sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql"   # 2. massa de dados
+psql -U postgres -d petly_club -a -f sql/testes/testes_integridade.sql                 # 3. testes de integridade, UPDATE e DELETE
+psql -U postgres -d petly_club -f sql/consultas/consultas_gerenciais.sql               # 4. consultas gerenciais
+psql -U postgres -d petly_club -f sql/auditoria/consultas_auditoria.sql                # 5. consultas de auditoria
+```
+
+| Comando exigido no manual | Onde está |
+|---|---|
+| CREATE DATABASE, CREATE TABLE, PK, FK, NOT NULL, UNIQUE, CHECK, DEFAULT | `sql/ddl/petly_club_ddl_limpo.sql` |
+| INSERT | `sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql` |
+| UPDATE e DELETE | `sql/testes/testes_integridade.sql` (U01 a U03 e D01, dentro de `BEGIN ... ROLLBACK`) |
+| SELECT e JOIN | `sql/consultas/consultas_gerenciais.sql` e `sql/auditoria/consultas_auditoria.sql` |
+
+## 23. Massa de dados
+
+A massa de dados foi gerada com auxílio de IA e validada pela equipe executando o script no banco: todas as PKs, FKs, CHECKs e gatilhos foram respeitados na carga. Ela não busca volume, e sim cobrir os oito cenários da seção 17.1 com dados coerentes entre si (data de referência 27/10/2026): 6 clientes, 4 funcionários, 3 fornecedores, 4 categorias, 6 produtos, 11 lotes (incluindo lote vencido e lote perto de vencer), 6 pedidos nos dois canais (pagos, enviado, retirado e dois cancelamentos de tipos diferentes), 5 compras (uma recebida em partes), 28 movimentações de estoque, crédito em 3x e pagamento parcial de fornecedor.
+
+- Script: [`sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql`](sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql)
+- Prompts utilizados: [`sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf`](sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf)
+
+**Testes de integridade:** 23 comandos que o banco deve recusar (T01 a T23, um para cada restrição relevante) e 4 operações que deve aceitar (U01 a U03 e D01). Script em [`sql/testes/testes_integridade.sql`](sql/testes/testes_integridade.sql) e evidências em [`evidencias/Testes_de_Integridade_Petly_Club.pdf`](evidencias/Testes_de_Integridade_Petly_Club.pdf).
+
+## 24. Consultas gerenciais
+
+Cada consulta parte de uma pergunta da gerência e termina em uma decisão.
+
+| # | Pergunta do negócio | Decisão que apoia |
+|---|---|---|
+| G01 | Quais são os 5 produtos mais vendidos em cada canal? | Priorizar reposição e destaque dos mais vendidos de cada canal |
+| G02 | Quanto vendemos por mês, em cada canal, e qual o ticket médio? | Planejar promoções e compras para os períodos fracos |
+| G03 | Quais produtos estão no estoque mínimo ou abaixo? | Gerar a solicitação de compra, começando pela maior falta |
+| G04 | Quais lotes com saldo vencem nos próximos 30 dias ou já venceram? | Dar saída aos que vencem primeiro e registrar a perda dos vencidos |
+| G05 | Quanto vamos receber em cada mês, por forma de pagamento? | Projetar o fluxo de caixa e avaliar o peso das taxas |
+
+- SQL executável: [`sql/consultas/consultas_gerenciais.sql`](sql/consultas/consultas_gerenciais.sql)
+- Explicação de cada consulta: [`sql/consultas/consultas_gerenciais.md`](sql/consultas/consultas_gerenciais.md)
+
+## 25. Consultas de auditoria
+
+As consultas de auditoria procuram situações que o banco não impede sozinho e que precisam de conferência. Na massa de dados do grupo, todas retornam 0 linhas.
+
+| # | O que verifica |
+|---|---|
+| AU01 | Pedidos concluídos sem pagamento suficiente |
+| AU02 | Pedidos sem itens |
+| AU03 | Itens vendidos sem baixa correta no estoque |
+| AU04 | Reservas presas em pedidos encerrados |
+| AU05 | Pagamentos e contas a receber que não batem |
+| AU06 | Compras com recebimento ou financeiro inconsistente |
+| AU07 | Lotes vencidos ainda com saldo |
+| AU08 | Perdas e ajustes autorizados por quem não é gerente |
+| AU09 | Descontos sem autorização registrada |
+| AU10 | Cadastros de clientes possivelmente duplicados |
+
+- SQL: [`sql/auditoria/consultas_auditoria.sql`](sql/auditoria/consultas_auditoria.sql)
+- Documento com a finalidade e o resultado de cada consulta: [`docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf`](docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf)
+
+## 26. Análise de dados, BI e IA
+
+Nada desta seção está implementado; ela mostra o que o modelo já permite extrair, no formato problema → dados → análise → benefício.
+
+- **Indicadores:** faturamento por canal, ticket médio, produtos mais vendidos, vendas por categoria, margem bruta, taxa de cancelamento, perdas por motivo, giro de estoque, autorizado × recebido, valores a receber e contas a pagar, prazo médio de entrega e frequência de recompra.
+- **BI:** três painéis (Gerência, Estoque e Financeiro), cada gráfico ligado ao indicador e à decisão que apoia.
+- **IA 1 — Previsão de demanda de ração e sugestão de compra:** usa o histórico de `item_pedido`, o saldo disponível dos lotes e o prazo do fornecedor para estimar quando o produto acaba e quando comprar.
+- **IA 2 — Alerta de lotes com risco de vencer sem vender:** cruza a validade do lote com o ritmo de vendas do produto para agir antes da perda.
+- **Limite reconhecido:** a massa de dados cobre poucos dias; tendências e previsões só ficam confiáveis depois de alguns meses de vendas reais registradas.
+
+Documento completo: [`docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf`](docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf)
+
+## 27. Histórico e evolução do projeto
+
+| Período | Etapa |
+|---|---|
+| Agosto a setembro de 2026 | Primeira entrega: empresa, processos, requisitos, regras, DER e dicionário conceitual |
+| 24/09/2026 | Auditoria do modelo em sala |
+| 01/10/2026 | Normalização em sala (aula 8) |
+| 15/10/2026 | Primeiro DDL e testes em sala (aula 9), em [`diarios-de-bordo/aula9_sql/`](diarios-de-bordo/aula9_sql/) |
+| 26/10/2026 | Revisão da primeira entrega conforme a devolutiva |
+| 27 e 28/10/2026 | Modelo lógico, normalização, DDL, massa de dados, testes, consultas, auditoria, BI e dicionário de dados |
+
+O histórico de commits mostra a contribuição de cada integrante na sua parte. A divisão de responsabilidades e a participação em cada aula estão nos [diários de bordo](diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf).
+
+## 28. Conclusão
+
+A entrega final transformou o modelo conceitual da Petly Club em um banco de dados que funciona. O modelo lógico mantém as 16 entidades do DER, os dois relacionamentos N:N foram resolvidos com tabelas associativas de chave composta, e a normalização retirou do modelo os atributos derivados que poderiam ficar desatualizados, como saldos de estoque e totais de pedido. As regras mais críticas do negócio, como não vender sem saldo, não alterar o histórico de estoque e não pagar mais que o valor de uma parcela, são garantidas pelo próprio banco e foram provadas com testes que o banco recusa. Por fim, as consultas gerenciais e de auditoria mostram que os dados registrados já geram informação para a gerência, e a análise de BI e IA indica os próximos passos para transformar esses dados em decisão.
+
+---
 
 ## Uso de Inteligência Artificial
 
@@ -1450,20 +1657,41 @@ Os relacionamentos N:N entre Pedido e Produto e entre Compra e Produto continuam
 - Revisão das partes do projeto, verificando se estavam coerentes entre si e de acordo com o modelo pedido pelo professor;
 - Apoio na formação e na formatação deste README;
 - Verificação do checklist do manual, para conferir se todos os pontos do trabalho foram atendidos;
-- Apoio para juntar as partes feitas pelos integrantes em um único documento.
+- Apoio para juntar as partes feitas pelos integrantes em um único documento;
+- Geração da massa de dados em escala, com os prompts documentados em [`sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf`](sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf);
+- Apoio na elaboração das consultas de auditoria (registrado no próprio script).
 
-**Como a equipe validou os resultados:** comparamos os resultados de diferentes ferramentas de IA antes de fazer as mudanças no projeto.
+**Como a equipe validou os resultados:** comparamos os resultados de diferentes ferramentas de IA antes de fazer as mudanças no projeto. Todo SQL gerado com auxílio de IA foi executado no PostgreSQL 16 em banco vazio: a massa de dados respeitou todas as PKs, FKs, CHECKs e gatilhos, os testes de integridade tiveram o resultado esperado e as consultas foram conferidas com os dados (seção 22).
 
 ---
 
 ### Documentos do repositório
 
-- **Documentação completa em PDF:** [`docs/Documentacao_Completa_Grupo7.pdf`](docs/Documentacao_Completa_Grupo7.pdf)
-- **Diários de bordo:** [`diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf`](diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf)
-- **Diários de bordo preenchidos depois da aula** (auditoria de 24/09, normalização de 01/10 e DDL de 15/10, preenchidos em 26/10/2026):
+**Primeira entrega**
+
+- **Documentação completa em PDF (primeira entrega revisada):** [`docs/Documentacao_Completa_Grupo7.pdf`](docs/Documentacao_Completa_Grupo7.pdf)
+- **DER (versão da entrega final):** [`der/DER.pdf`](der/DER.pdf) · script que gera o diagrama: [`der/gerar_der.py`](der/gerar_der.py)
+- **Fluxogramas:** pasta [`fluxogramas/`](fluxogramas/)
+
+**Entrega final**
+
+| Artefato | Arquivo |
+|---|---|
+| Modelo lógico | [`docs/modelo-logico/Modelo_Logico_Petly_Club_Grupo7.pdf`](docs/modelo-logico/Modelo_Logico_Petly_Club_Grupo7.pdf) · [`.docx`](docs/modelo-logico/Modelo_Logico_Petly_Club_Grupo7.docx) |
+| Normalização | [`docs/normalizacao/Normalizacao_Petly_Club.pdf`](docs/normalizacao/Normalizacao_Petly_Club.pdf) |
+| Dicionário de dados | [`docs/dicionario-dados/Dicionario_de_Dados_Petly_Club_Grupo7.pdf`](docs/dicionario-dados/Dicionario_de_Dados_Petly_Club_Grupo7.pdf) |
+| Script DDL | [`sql/ddl/petly_club_ddl_limpo.sql`](sql/ddl/petly_club_ddl_limpo.sql) |
+| Massa de dados e prompts | [`sql/dados/`](sql/dados/) |
+| Testes de integridade | [`sql/testes/testes_integridade.sql`](sql/testes/testes_integridade.sql) · [`evidencias/Testes_de_Integridade_Petly_Club.pdf`](evidencias/Testes_de_Integridade_Petly_Club.pdf) |
+| Consultas gerenciais | [`sql/consultas/consultas_gerenciais.sql`](sql/consultas/consultas_gerenciais.sql) · [`consultas_gerenciais.md`](sql/consultas/consultas_gerenciais.md) |
+| Consultas de auditoria | [`sql/auditoria/consultas_auditoria.sql`](sql/auditoria/consultas_auditoria.sql) · [`docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf`](docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf) |
+| Análise de dados, BI e IA | [`docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf`](docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf) |
+| Saída da execução completa | [`evidencias/saida_execucao_completa.txt`](evidencias/saida_execucao_completa.txt) |
+
+**Diários de bordo**
+
+- [`diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf`](diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf)
+- Preenchidos depois da aula (auditoria de 24/09, normalização de 01/10 e DDL de 15/10, preenchidos em 26/10/2026):
   - [`diarios-de-bordo/Diario_Auditoria_24-09_Grupo7.pdf`](diarios-de-bordo/Diario_Auditoria_24-09_Grupo7.pdf)
   - [`diarios-de-bordo/Diario_Aula8_Normalizacao_01-10_Grupo7.pdf`](diarios-de-bordo/Diario_Aula8_Normalizacao_01-10_Grupo7.pdf)
   - [`diarios-de-bordo/Diario_Aula9_DDL_15-10_Grupo7.pdf`](diarios-de-bordo/Diario_Aula9_DDL_15-10_Grupo7.pdf), com o script e os testes em [`diarios-de-bordo/aula9_sql/`](diarios-de-bordo/aula9_sql/)
-- **DER:** [`der/DER.pdf`](der/DER.pdf)
-- **Fluxogramas:** pasta [`fluxogramas/`](fluxogramas/)
-

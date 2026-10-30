@@ -2,9 +2,8 @@
 -- PROJETO ERP PETLY CLUB - CONSULTAS DE AUDITORIA
 -- ============================================================================
 -- Grupo 7 | SGBD: PostgreSQL 16
--- Responsabilidade: esta parte era do integrante Amin, que não a entregou e não participou do projeto
--- depois da primeira entrega. Por causa dessa falta de colaboração, foi feita por Gabriela Colombo,
--- com auxílio de IA (Claude). Todas as consultas foram executadas e conferidas no banco do grupo.
+-- Uso de IA: consultas elaboradas com auxílio de IA (Claude). Todas foram executadas e conferidas
+-- pela equipe no banco do grupo.
 -- Pré-requisito: petly_club_ddl_limpo.sql + Massa_de_Dados_Completa_-_ERP_Petly_Club.sql
 -- Na base do grupo, todas as consultas devem retornar 0 linhas (dados consistentes).
 -- Como rodar: psql -d petly_club -f consultas_auditoria.sql

@@ -1,0 +1,474 @@
+== Execução completa em banco vazio — PostgreSQL 16 — 29/10/2026 09:01 ==
+
+### 1. ddl/petly_club_ddl_limpo.sql
+DROP DATABASE
+CREATE DATABASE
+You are now connected to database "petly_club" as user "postgres".
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+CREATE VIEW
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE TRIGGER
+
+### 2. dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql
+BEGIN
+TRUNCATE TABLE
+INSERT 0 4
+INSERT 0 3
+INSERT 0 4
+INSERT 0 6
+INSERT 0 6
+INSERT 0 3
+INSERT 0 6
+INSERT 0 8
+INSERT 0 8
+INSERT 0 3
+INSERT 0 3
+INSERT 0 1
+INSERT 0 2
+INSERT 0 3
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 2
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 4
+INSERT 0 1
+INSERT 0 1
+INSERT 0 3
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 1
+UPDATE 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 3
+INSERT 0 1
+INSERT 0 1
+ setval 
+--------
+      4
+(1 row)
+
+ setval 
+--------
+      3
+(1 row)
+
+ setval 
+--------
+      4
+(1 row)
+
+ setval 
+--------
+      6
+(1 row)
+
+ setval 
+--------
+      6
+(1 row)
+
+ setval 
+--------
+     11
+(1 row)
+
+ setval 
+--------
+    102
+(1 row)
+
+ setval 
+--------
+      6
+(1 row)
+
+ setval 
+--------
+     28
+(1 row)
+
+ setval 
+--------
+      1
+(1 row)
+
+ setval 
+--------
+      7
+(1 row)
+
+ setval 
+--------
+      8
+(1 row)
+
+ setval 
+--------
+    102
+(1 row)
+
+ setval 
+--------
+    102
+(1 row)
+
+COMMIT
+
+### 3. testes/testes_integridade.sql
+[T01] PK duplicada
+ERROR:  duplicate key value violates unique constraint "pk_categoria"
+DETAIL:  Key (id_categoria)=(1) already exists.
+[T02] ID digitado manualmente
+ERROR:  cannot insert a non-DEFAULT value into column "id_cliente"
+DETAIL:  Column "id_cliente" is an identity column defined as GENERATED ALWAYS.
+HINT:  Use OVERRIDING SYSTEM VALUE to override.
+[T03] CPF repetido
+ERROR:  duplicate key value violates unique constraint "uk_cliente_cpf"
+DETAIL:  Key (cpf)=(12345678901) already exists.
+[T04] Código de barras repetido
+ERROR:  duplicate key value violates unique constraint "uk_produto_barras"
+DETAIL:  Key (codigo_barras)=(7890000000011) already exists.
+[T05] Pedido de cliente inexistente
+ERROR:  insert or update on table "pedido" violates foreign key constraint "fk_pedido_cliente"
+DETAIL:  Key (id_cliente)=(999) is not present in table "cliente".
+[T06] Venda saindo do lote de outro produto
+ERROR:  insert or update on table "movimentacao_estoque" violates foreign key constraint "fk_mov_lote"
+DETAIL:  Key (id_lote, id_produto)=(3, 1) is not present in table "lote".
+[T07] Excluir cliente que tem pedidos
+ERROR:  update or delete on table "cliente" violates foreign key constraint "fk_pedido_cliente" on table "pedido"
+DETAIL:  Key (id_cliente)=(1) is still referenced from table "pedido".
+[T08] Produto sem categoria
+ERROR:  null value in column "id_categoria" of relation "produto" violates not-null constraint
+DETAIL:  Failing row contains (8, Coleira P, null, Marca D, 7890000000999, 39.90, 0, f, null).
+[T09] Preço zero
+ERROR:  new row for relation "produto" violates check constraint "ck_produto_preco"
+DETAIL:  Failing row contains (9, Petisco Gratis, null, Marca C, 7890000000998, 0.00, 0, t, 1).
+[T10] Loja física com entrega
+ERROR:  new row for relation "pedido" violates check constraint "ck_pedido_canal_recebimento"
+DETAIL:  Failing row contains (8, 1, 2, 2026-10-29 12:01:44.114733, loja_fisica, entrega, pendente, 0.00, null, null).
+[T11] Venda no caixa sem funcionário
+ERROR:  new row for relation "pedido" violates check constraint "ck_pedido_func_fisica"
+DETAIL:  Failing row contains (9, 1, null, 2026-10-29 12:01:44.114897, loja_fisica, balcao, pendente, 0.00, null, null).
+[T12] Cancelamento no caixa sem autorização
+ERROR:  new row for relation "pedido" violates check constraint "ck_pedido_cancel_fisica"
+DETAIL:  Failing row contains (1, 1, 2, 2026-10-20 10:30:00, loja_fisica, balcao, cancelado, 0.00, null, null).
+[T13] Perda sem autorizador
+ERROR:  new row for relation "movimentacao_estoque" violates check constraint "ck_mov_autorizacao"
+DETAIL:  Failing row contains (30, 2, 1, perda, 1, 2026-10-29 12:01:44.115313, Embalagem rasgada, 3, null, null, null).
+[T14] Perda sem motivo
+ERROR:  new row for relation "movimentacao_estoque" violates check constraint "ck_mov_motivo"
+DETAIL:  Failing row contains (31, 2, 1, perda, 1, 2026-10-29 12:01:44.115864, null, 3, 1, null, null).
+[T15] Crédito em 4 vezes
+ERROR:  new row for relation "pagamento" violates check constraint "ck_pag_parcelas"
+DETAIL:  Failing row contains (8, 2, cartao_credito, 134.70, 4, null, pendente).
+[T16] Débito parcelado
+ERROR:  new row for relation "pagamento" violates check constraint "ck_pag_parcelas_credito"
+DETAIL:  Failing row contains (9, 2, cartao_debito, 134.70, 2, null, pendente).
+[T17] Conta recebida sem data
+ERROR:  new row for relation "conta_receber" violates check constraint "ck_cr_recebimento"
+DETAIL:  Failing row contains (2, 2, 1, 44.90, 42.65, 2026-11-24, null, recebida).
+[T18] Mesmo produto duas vezes no pedido
+ERROR:  duplicate key value violates unique constraint "pk_item_pedido"
+DETAIL:  Key (id_pedido, id_produto)=(1, 1) already exists.
+[T19] Mesmo produto duas vezes na compra
+ERROR:  duplicate key value violates unique constraint "pk_item_compra"
+DETAIL:  Key (id_compra, id_produto)=(1, 1) already exists.
+[T20] Alterar uma movimentação de estoque
+ERROR:  Movimentacao de estoque nao pode ser alterada nem excluida (RN19). Registre um ajuste.
+CONTEXT:  PL/pgSQL function fn_mov_imutavel() line 3 at RAISE
+[T21] Vender sem saldo
+ERROR:  Saldo insuficiente no lote 6 (RN07): o saldo fisico ficaria em -1.
+CONTEXT:  PL/pgSQL function fn_mov_saldo() line 30 at RAISE
+[T22] Entrada em lote vencido
+ERROR:  Lote 4 vencido em 2026-09-30 (RF12): entrada nao permitida.
+CONTEXT:  PL/pgSQL function fn_mov_validade() line 8 at RAISE
+[T23] Pagar mais que o valor da parcela
+ERROR:  Pagamento acima do valor da parcela 1 (RN23): ja pago 500.00, novo 600.00, valor 1000.00.
+CONTEXT:  PL/pgSQL function fn_pagconta_valida() line 18 at RAISE
+[U01] UPDATE: reajuste de preço não altera vendas antigas
+BEGIN
+UPDATE 1
+ preco_atual | preco_no_pedido_1 
+-------------+-------------------
+      199.90 |            189.90
+(1 row)
+
+ROLLBACK
+[U02] UPDATE: pedido entregue
+BEGIN
+UPDATE 1
+UPDATE 1
+  pedido  | entrega  | data_entrega 
+----------+----------+--------------
+ entregue | entregue | 2026-10-28
+(1 row)
+
+ROLLBACK
+[U03] INSERT + gatilho: pagamento que quita a parcela
+BEGIN
+INSERT 0 1
+ id_conta_pagar | id_compra | numero_parcela |  valor  | data_vencimento | status | valor_pago_total | saldo_devedor 
+----------------+-----------+----------------+---------+-----------------+--------+------------------+---------------
+              1 |         1 |              1 | 1000.00 | 2026-11-22      | paga   |          1000.00 |          0.00
+(1 row)
+
+ROLLBACK
+[D01] DELETE: categoria sem produtos
+BEGIN
+INSERT 0 1
+DELETE 1
+ROLLBACK
+
+### 4. consultas/consultas_gerenciais.sql
+[G01] Produtos mais vendidos por canal
+ canal_venda  | posicao |              nome               |   marca   | unidades_vendidas | receita_bruta 
+--------------+---------+---------------------------------+-----------+-------------------+---------------
+ loja_fisica  |       1 | Racao Premium Caes Adultos 15kg | NutriPet  |                 2 |        379.80
+ loja_fisica  |       2 | Antipulgas e Carrapatos 10-20kg | PharmaVet |                 1 |         89.90
+ loja_fisica  |       3 | Bolinha de Borracha Interativa  | PetStyle  |                 1 |         19.90
+ loja_virtual |       1 | Shampoo Neutro 500ml            | PetClean  |                 3 |         89.70
+ loja_virtual |       2 | Racao Gatos Castrados 3kg       | NutriPet  |                 1 |         74.90
+(5 rows)
+
+[G02] Vendas por período
+   mes   | canal_venda  | qtd_pedidos | faturamento | ticket_medio 
+---------+--------------+-------------+-------------+--------------
+ 2026-10 | loja_fisica  |           2 |      479.60 |       239.80
+ 2026-10 | loja_virtual |           2 |      164.60 |        82.30
+(2 rows)
+
+[G03] Produtos no estoque mínimo ou abaixo
+ id_produto |              nome              |  marca   |        categoria        | estoque_minimo | quantidade_disponivel | falta_para_o_minimo 
+------------+--------------------------------+----------+-------------------------+----------------+-----------------------+---------------------
+          4 | Bolinha de Borracha Interativa | PetStyle | Acessorios e Brinquedos |             15 |                     0 |                  15
+(1 row)
+
+[G04] Lotes perto de vencer
+           nome           |  marca   |   codigo_lote   | data_validade | dias_para_vencer | saldo_fisico | quantidade_disponivel | situacao 
+--------------------------+----------+-----------------+---------------+------------------+--------------+-----------------------+----------
+ Petisco Dental Caes 200g | NutriPet | LOTE-PET-2026-A | 2026-11-10    |               12 |           12 |                    12 | a vencer
+(1 row)
+
+[G05] Valores a receber por mês
+   mes   | forma_pagamento | qtd_parcelas | total_bruto | total_liquido | taxas 
+---------+-----------------+--------------+-------------+---------------+-------
+ 2026-11 | cartao_credito  |            1 |       44.90 |         42.65 |  2.25
+ 2026-12 | cartao_credito  |            1 |       44.90 |         42.65 |  2.25
+ 2027-01 | cartao_credito  |            1 |       44.90 |         42.65 |  2.25
+(3 rows)
+
+
+### 5. auditoria/consultas_auditoria.sql
+[AU01] Pedidos concluídos sem pagamento suficiente
+ id_pedido | canal_venda | status | valor_total | pago_autorizado 
+-----------+-------------+--------+-------------+-----------------
+(0 rows)
+
+[AU02] Pedidos sem itens
+ id_pedido | data_pedido | canal_venda | status 
+-----------+-------------+-------------+--------
+(0 rows)
+
+[AU03] Itens vendidos sem baixa correta no estoque
+ id_pedido | id_produto | vendido | baixado 
+-----------+------------+---------+---------
+(0 rows)
+
+[AU04] Reservas presas em pedidos encerrados
+ id_pedido | status | id_lote | id_produto | reserva_em_aberto 
+-----------+--------+---------+------------+-------------------
+(0 rows)
+
+[AU05] Pagamentos e contas a receber que não batem
+ id_pagamento | id_pedido | forma_pagamento | status | valor | soma_contas | contas_ativas 
+--------------+-----------+-----------------+--------+-------+-------------+---------------
+(0 rows)
+
+[AU06] Compras com recebimento ou financeiro inconsistente
+ id_compra | status | comprado | recebido | valor_total | parcelas 
+-----------+--------+----------+----------+-------------+----------
+(0 rows)
+
+[AU07] Lotes vencidos ainda com saldo
+ id_lote | nome | codigo_lote | data_validade | dias_vencido | saldo_fisico 
+---------+------+-------------+---------------+--------------+--------------
+(0 rows)
+
+[AU08] Perdas e ajustes autorizados por quem não é gerente
+ id_movimentacao | data_hora | tipo | quantidade | motivo | autorizador | cargo 
+-----------------+-----------+------+------------+--------+-------------+-------
+(0 rows)
+
+[AU09] Descontos sem autorização registrada
+ id_pedido | data_pedido | canal_venda | desconto | valor_itens | registrado_por 
+-----------+-------------+-------------+----------+-------------+----------------
+(0 rows)
+
+[AU10] Cadastros de clientes possivelmente duplicados
+ id_cliente | nome | cpf | possivel_duplicado | nome_duplicado | cpf_duplicado | motivo 
+------------+------+-----+--------------------+----------------+---------------+--------
+(0 rows)
+
+Teste da AU01
+BEGIN
+INSERT 0 1
+INSERT 0 1
+ id_pedido | canal_venda | status | valor_total | pago_autorizado 
+-----------+-------------+--------+-------------+-----------------
+        90 | loja_fisica | pago   |       74.90 |               0
+(1 row)
+
+ROLLBACK
+Teste da AU02
+BEGIN
+INSERT 0 1
+ id_pedido |        data_pedido         | canal_venda  |  status  
+-----------+----------------------------+--------------+----------
+        91 | 2026-10-29 12:01:44.190538 | loja_virtual | pendente
+(1 row)
+
+ROLLBACK
+Teste da AU03
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ id_pedido | id_produto | vendido | baixado 
+-----------+------------+---------+---------
+        92 |          2 |       3 |       1
+(1 row)
+
+ROLLBACK
+Teste da AU04
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ id_pedido |  status   | id_lote | id_produto | reserva_em_aberto 
+-----------+-----------+---------+------------+-------------------
+        93 | cancelado |       7 |          5 |                 2
+(1 row)
+
+ROLLBACK
+Teste da AU05
+BEGIN
+INSERT 0 1
+ id_pagamento | id_pedido | forma_pagamento |   status   | valor | soma_contas | contas_ativas 
+--------------+-----------+-----------------+------------+-------+-------------+---------------
+           10 |         1 | pix             | autorizado | 10.00 |           0 |             0
+(1 row)
+
+ROLLBACK
+Teste da AU06
+BEGIN
+INSERT 0 1
+INSERT 0 1
+ id_compra |  status  | comprado | recebido | valor_total | parcelas 
+-----------+----------+----------+----------+-------------+----------
+        90 | recebida |       10 |        0 |       80.00 |        0
+(1 row)
+
+ROLLBACK
+Teste da AU07
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ id_lote |           nome            |  codigo_lote  | data_validade | dias_vencido | saldo_fisico 
+---------+---------------------------+---------------+---------------+--------------+--------------
+      90 | Racao Gatos Castrados 3kg | LOTE-GAT-VENC | 2026-10-15    |           14 |            4
+(1 row)
+
+ROLLBACK
+Teste da AU08
+BEGIN
+INSERT 0 1
+ id_movimentacao |         data_hora          | tipo  | quantidade |      motivo       |   autorizador   |   cargo    
+-----------------+----------------------------+-------+------------+-------------------+-----------------+------------
+              37 | 2026-10-29 12:01:44.198827 | perda |          1 | Embalagem rasgada | Roberto Martins | estoquista
+(1 row)
+
+ROLLBACK
+Teste da AU09
+BEGIN
+UPDATE 1
+ id_pedido |     data_pedido     | canal_venda | desconto | valor_itens | registrado_por  
+-----------+---------------------+-------------+----------+-------------+-----------------
+         1 | 2026-10-20 10:30:00 | loja_fisica |    20.00 |      399.70 | Ana Paula Souza
+(1 row)
+
+ROLLBACK
+Teste da AU10
+BEGIN
+INSERT 0 1
+ id_cliente |    nome     |     cpf     | possivel_duplicado | nome_duplicado | cpf_duplicado |    motivo    
+------------+-------------+-------------+--------------------+----------------+---------------+--------------
+          1 | Maria Souza | 12345678901 |                  8 | Maria Souza    | 12345678910   | mesmo e-mail
+(1 row)
+
+ROLLBACK

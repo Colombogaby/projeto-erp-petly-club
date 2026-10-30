@@ -1,4 +1,4 @@
-# Nicolas — Consultas gerenciais
+# Consultas gerenciais — Petly Club
 
 SGBD: PostgreSQL 16. As consultas usam as tabelas do modelo lógico e, nas consultas 3 e 4, a visão `v_lote_saldo` (seção 7.1 do modelo lógico), porque o saldo do lote é derivado das movimentações e não fica gravado. Os totais de pedido também são calculados (`quantidade × preco_unitario − desconto`). Todas foram executadas sobre a massa de dados do grupo, com data de referência 27/10/2026.
 
