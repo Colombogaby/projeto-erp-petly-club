@@ -1646,7 +1646,7 @@ Documento completo: [`docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf`](docs/
 | 15/10/2026 | Primeiro DDL e testes em sala (aula 9), em [`diarios-de-bordo/aula9_sql/`](diarios-de-bordo/aula9_sql/) |
 | 26/10/2026 | Revisão da primeira entrega conforme a devolutiva |
 | 27 e 28/10/2026 | Modelo lógico, normalização, DDL, massa de dados, testes, consultas, auditoria, BI e dicionário de dados |
-| 29 e 30/10/2026 | Revisão final: README da entrega final, DER com os ajustes [A2] e [A3], massa histórica de vendas e dashboard |
+| 29 e 30/10/2026 | Revisão final: README da entrega final, DER com os ajustes [A2] e [A3], massa histórica de vendas, dashboard e slides da apresentação |
 
 O histórico de commits mostra a contribuição de cada integrante na sua parte. A divisão de responsabilidades e a participação em cada aula estão nos [diários de bordo](diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf).
 
@@ -1658,7 +1658,7 @@ A entrega final transformou o modelo conceitual da Petly Club em um banco de dad
 
 ## Uso de Inteligência Artificial
 
-**Ferramentas:** Claude (Anthropic), ChatGPT (OpenAI) e Gemini (Google)
+**Ferramentas:** Claude (Anthropic), ChatGPT (OpenAI), Gemini (Google) e Gamma (apresentação)
 
 **Finalidades:**
 
@@ -1667,9 +1667,11 @@ A entrega final transformou o modelo conceitual da Petly Club em um banco de dad
 - Verificação do checklist do manual, para conferir se todos os pontos do trabalho foram atendidos;
 - Apoio para juntar as partes feitas pelos integrantes em um único documento;
 - Geração da massa de dados em escala, com os prompts documentados em [`sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf`](sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf);
-- Apoio na elaboração das consultas de auditoria (registrado no próprio script).
+- Apoio na elaboração das consultas de auditoria (registrado no próprio script);
+- Geração da massa histórica de vendas e do dashboard da gerência, com o script gerador e a consulta que alimenta o painel no repositório;
+- Montagem dos slides da apresentação no Gamma, a partir de um roteiro seguindo o Manual da Apresentação. As imagens dos slides vêm do próprio projeto: o DER, as saídas reais do PostgreSQL (venda recusada por falta de saldo e consulta de estoque mínimo) e o dashboard.
 
-**Como a equipe validou os resultados:** comparamos os resultados de diferentes ferramentas de IA antes de fazer as mudanças no projeto. Todo SQL gerado com auxílio de IA foi executado no PostgreSQL 16 em banco vazio: a massa de dados respeitou todas as PKs, FKs, CHECKs e gatilhos, os testes de integridade tiveram o resultado esperado e as consultas foram conferidas com os dados (seção 22).
+**Como a equipe validou os resultados:** comparamos os resultados de diferentes ferramentas de IA antes de fazer as mudanças no projeto. Nos slides, a equipe revisou o texto gerado pelo Gamma e conferiu que cada número apresentado corresponde ao banco. Todo SQL gerado com auxílio de IA foi executado no PostgreSQL 16 em banco vazio: a massa de dados respeitou todas as PKs, FKs, CHECKs e gatilhos, os testes de integridade tiveram o resultado esperado e as consultas foram conferidas com os dados (seção 22).
 
 ---
 
@@ -1691,6 +1693,7 @@ A entrega final transformou o modelo conceitual da Petly Club em um banco de dad
 | Script DDL | [`sql/ddl/petly_club_ddl_limpo.sql`](sql/ddl/petly_club_ddl_limpo.sql) |
 | Massa de dados (cenários e histórico) e prompts | [`sql/dados/`](sql/dados/) |
 | Dashboard | [`docs/bi-ia/dashboard_petly_club.html`](docs/bi-ia/dashboard_petly_club.html) |
+| Apresentação (slides feitos no Gamma) | [`apresentacao/ERP-Petly-Club.pptx`](apresentacao/ERP-Petly-Club.pptx) |
 | Testes de integridade | [`sql/testes/testes_integridade.sql`](sql/testes/testes_integridade.sql) · [`evidencias/Testes_de_Integridade_Petly_Club.pdf`](evidencias/Testes_de_Integridade_Petly_Club.pdf) |
 | Consultas gerenciais | [`sql/consultas/consultas_gerenciais.sql`](sql/consultas/consultas_gerenciais.sql) · [`consultas_gerenciais.md`](sql/consultas/consultas_gerenciais.md) |
 | Consultas de auditoria | [`sql/auditoria/consultas_auditoria.sql`](sql/auditoria/consultas_auditoria.sql) · [`docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf`](docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf) |

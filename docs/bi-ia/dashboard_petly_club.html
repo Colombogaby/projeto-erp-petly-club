@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel da Gerência — Petly Club</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface-0: #f4f4f1;
+  --surface-1: #fcfcfb;
+  --border: #e2e1dc;
+  --grid: #ecebe7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77766f;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --bar: #2a78d6;
+  --critical: #d03b3b;
+  --warning: #b07400;
+  --chip: #eef3fb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-0: #121211;
+    --surface-1: #1a1a19;
+    --border: #2f2f2c;
+    --grid: #262624;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #9a998f;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --bar: #3987e5;
+    --critical: #e66767;
+    --warning: #fab219;
+    --chip: #1f2a38;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #121211;
+  --surface-1: #1a1a19;
+  --border: #2f2f2c;
+  --grid: #262624;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #9a998f;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --bar: #3987e5;
+  --critical: #e66767;
+  --warning: #fab219;
+  --chip: #1f2a38;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--surface-0); color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 40px; }
+header h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+header p { margin: 0; color: var(--text-secondary); }
+.chip { display: inline-block; background: var(--chip); color: var(--text-secondary); border-radius: 999px;
+  padding: 2px 10px; font-size: 12px; margin: 10px 6px 0 0; }
+.kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 22px 0 16px; }
+.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.kpi .lbl { font-size: 12px; color: var(--text-secondary); }
+.kpi .val { font-size: 24px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 14px;
+  min-width: 0; position: relative; }
+.card.wide { grid-column: 1 / -1; }
+.card h2 { font-size: 15px; margin: 0; }
+.card .q { font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 10px; }
+.card .dec { font-size: 12.5px; color: var(--text-secondary); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; }
+.card .dec b { color: var(--text-primary); font-weight: 600; }
+.head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.toggle { font: inherit; font-size: 12px; color: var(--text-secondary); background: transparent; border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px 9px; cursor: pointer; white-space: nowrap; }
+.toggle:hover { color: var(--text-primary); }
+.legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 16px; height: 2px; border-radius: 1px; }
+.legend i.box { width: 10px; height: 10px; border-radius: 2px; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font-family: inherit; }
+.axis { fill: var(--text-muted); font-size: 11px; }
+.dlabel { fill: var(--text-secondary); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.blabel { fill: var(--text-primary); font-size: 12px; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.base { stroke: var(--text-muted); stroke-width: 1; opacity: .5; }
+.hit { fill: transparent; cursor: default; }
+.bar { transition: opacity .12s; }
+.bar.dim { opacity: .45; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--text-secondary); font-size: 12px; }
+td.num, th.num { text-align: right; }
+.tbl { display: none; max-height: 320px; overflow: auto; }
+.card.show-table .tbl { display: block; }
+.card.show-table .chart { display: none; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.status.crit { color: var(--critical); }
+.status.warn { color: var(--warning); }
+.tip { position: fixed; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  opacity: 0; transition: opacity .08s; z-index: 10; min-width: 150px; }
+.tip .t { color: var(--text-secondary); margin-bottom: 4px; }
+.tip .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.tip .r b { font-variant-numeric: tabular-nums; }
+.tip .r span { color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px; }
+.tip .k { display: inline-block; width: 12px; height: 2px; border-radius: 1px; }
+footer { color: var(--text-muted); font-size: 12px; margin-top: 22px; line-height: 1.6; }
+footer code { font-size: 11.5px; }
+.theme { position: absolute; top: 28px; right: 16px; }
+@media (max-width: 900px) {
+  .kpis { grid-template-columns: repeat(3, 1fr); }
+  .grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .theme { position: static; margin-bottom: 12px; }
+  .chart { overflow-x: auto; }
+  #c-semanas svg { min-width: 640px; }
+  .card:not(#c-semanas):not(#c-estoque) svg { min-width: 430px; }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .kpi .val { font-size: 20px; }
+}
+@media print {
+  body { background: #fff; }
+  .toggle, .theme { display: none; }
+  .card { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="wrap" style="position:relative">
+  <button class="toggle theme" id="themeBtn" type="button">Tema claro/escuro</button>
+  <header>
+    <h1>Petly Club — Painel da Gerência</h1>
+    <p>Proposta de BI do ERP: cada painel responde a uma pergunta da gerência com os dados que o banco já guarda.</p>
+    <span class="chip" id="periodo"></span><span class="chip">Lojas física e virtual</span><span class="chip">Dados da massa de testes · PostgreSQL 16</span>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Indicadores"></section>
+
+  <section class="grid">
+    <div class="card wide" id="c-semanas">
+      <div class="head"><div><h2>Faturamento semanal por canal</h2>
+        <p class="q">Como as vendas evoluíram nos últimos meses, na loja física e na virtual?</p></div>
+        <button class="toggle" type="button">Ver tabela</button></div>
+      <div class="legend"><span><i style="background:var(--series-1)"></i>Loja física</span><span><i style="background:var(--series-2)"></i>Loja virtual</span></div>
+      <div class="chart"></div><div class="tbl"></div>
+      <p class="dec"><b>Decisão que apoia:</b> planejar compras e promoções para as semanas fracas e acompanhar quanto a loja virtual cresce em relação à física. Semanas completas do histórico, de 03/08 a 18/10/2026.</p>
+    </div>
+
+    <div class="card" id="c-produtos">
+      <div class="head"><div><h2>Produtos que mais faturam</h2>
+        <p class="q">Quais produtos trazem mais receita?</p></div>
+        <button class="toggle" type="button">Ver tabela</button></div>
+      <div class="chart"></div><div class="tbl"></div>
+      <p class="dec"><b>Decisão que apoia:</b> priorizar a reposição e o destaque desses itens; a ração de 15 kg sozinha responde por cerca de 40% da receita.</p>
+    </div>
+
+    <div class="card" id="c-categorias">
+      <div class="head"><div><h2>Receita por categoria</h2>
+        <p class="q">Como a receita se divide entre as categorias?</p></div>
+        <button class="toggle" type="button">Ver tabela</button></div>
+      <div class="chart"></div><div class="tbl"></div>
+      <p class="dec"><b>Decisão que apoia:</b> ajustar o mix de produtos e o espaço de prateleira de cada categoria.</p>
+    </div>
+
+    <div class="card" id="c-fluxo">
+      <div class="head"><div><h2>Fluxo de caixa previsto</h2>
+        <p class="q">Quanto entra (a receber) e quanto sai (a pagar) em cada mês?</p></div>
+        <button class="toggle" type="button">Ver tabela</button></div>
+      <div class="legend"><span><i class="box" style="background:var(--series-1)"></i>A receber (líquido)</span><span><i class="box" style="background:var(--series-2)"></i>A pagar</span></div>
+      <div class="chart"></div><div class="tbl"></div>
+      <p class="dec"><b>Decisão que apoia:</b> saber se as vendas no cartão, que entram em parcelas, cobrem as contas dos fornecedores; venda autorizada não é dinheiro em caixa (RN24).</p>
+    </div>
+
+    <div class="card" id="c-formas">
+      <div class="head"><div><h2>Vendas por forma de pagamento</h2>
+        <p class="q">Como os clientes pagam?</p></div>
+        <button class="toggle" type="button">Ver tabela</button></div>
+      <div class="chart"></div><div class="tbl"></div>
+      <p class="dec"><b>Decisão que apoia:</b> negociar taxas com a operadora e avaliar incentivo ao PIX, que entra na hora e não tem taxa.</p>
+    </div>
+
+    <div class="card wide" id="c-estoque">
+      <div class="head"><div><h2>Alertas de estoque</h2>
+        <p class="q">O que precisa ser reposto e o que está perto de vencer? (referência: 27/10/2026)</p></div></div>
+      <div class="chart"></div>
+      <p class="dec"><b>Decisão que apoia:</b> gerar a solicitação de compra começando pela maior falta e dar saída prioritária aos lotes que vencem primeiro (FEFO), antes que virem perda.</p>
+    </div>
+  </section>
+
+  <footer>
+    Fonte: banco <code>petly_club</code> (PostgreSQL 16) após <code>petly_club_ddl_limpo.sql</code>, <code>Massa_de_Dados_Completa_-_ERP_Petly_Club.sql</code> e <code>Massa_Historico_Vendas_ERP_Petly_Club.sql</code>.
+    Os valores foram extraídos por <code>docs/bi-ia/dados_dashboard.sql</code>. Faturamento = itens × preço praticado − desconto, sem pedidos cancelados (o total do pedido é derivado, visão <code>v_pedido_total</code>).
+    Data de referência dos testes: 27/10/2026. A empresa é fictícia e os dados são de teste.
+  </footer>
+</div>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = {"semanas" : [{"semana":"2026-07-27","fisica":705.74,"virtual":292.20,"pedidos":9}, 
+ {"semana":"2026-08-03","fisica":1858.27,"virtual":1344.40,"pedidos":22}, 
+ {"semana":"2026-08-10","fisica":1885.86,"virtual":385.21,"pedidos":21}, 
+ {"semana":"2026-08-17","fisica":2968.66,"virtual":847.88,"pedidos":30}, 
+ {"semana":"2026-08-24","fisica":1427.45,"virtual":1372.08,"pedidos":22}, 
+ {"semana":"2026-08-31","fisica":1770.45,"virtual":1319.64,"pedidos":33}, 
+ {"semana":"2026-09-07","fisica":3579.89,"virtual":1162.80,"pedidos":29}, 
+ {"semana":"2026-09-14","fisica":1164.76,"virtual":2785.83,"pedidos":30}, 
+ {"semana":"2026-09-21","fisica":2215.58,"virtual":1450.07,"pedidos":29}, 
+ {"semana":"2026-09-28","fisica":3060.91,"virtual":666.07,"pedidos":36}, 
+ {"semana":"2026-10-05","fisica":2555.75,"virtual":1103.29,"pedidos":32}, 
+ {"semana":"2026-10-12","fisica":1849.04,"virtual":1537.79,"pedidos":33}, 
+ {"semana":"2026-10-19","fisica":609.40,"virtual":427.30,"pedidos":6}, 
+ {"semana":"2026-10-26","fisica":79.90,"virtual":29.90,"pedidos":2}], "kpi" : {"faturamento" : 40456.12, "pedidos" : 334, "ticket" : 121.13, "pct_virtual" : 35.9, "clientes" : 36, "recompra" : 94.4, "cancel" : 2.6}, "meses" : [{"mes":"2026-08","faturamento":13550.45,"pedidos":109,"ticket":124.32}, 
+ {"mes":"2026-09","faturamento":16215.83,"pedidos":129,"ticket":125.70}, 
+ {"mes":"2026-10","faturamento":10689.84,"pedidos":96,"ticket":111.35}], "produtos" : [{"nome":"Racao Premium Caes Adultos 15kg","unidades":85,"receita":16141.50,"margem":7641.50}, 
+ {"nome":"Racao Gatos Castrados 3kg","unidades":58,"receita":4344.20,"margem":2024.20}, 
+ {"nome":"Racao Filhotes Caes 3kg","unidades":58,"receita":4054.20,"margem":1966.20}, 
+ {"nome":"Tapete Higienico 30 unidades","unidades":48,"receita":2875.20,"margem":1435.20}, 
+ {"nome":"Shampoo Neutro 500ml","unidades":78,"receita":2332.20,"margem":1162.20}, 
+ {"nome":"Areia Higienica Gatos 4kg","unidades":61,"receita":2006.90,"margem":1030.90}, 
+ {"nome":"Arranhador para Gatos","unidades":19,"receita":1708.10,"margem":910.10}, 
+ {"nome":"Sache Gatos Salmao 85g","unidades":387,"receita":1544.13,"margem":847.53}], "categorias" : [{"nome":"Racoes e Alimentos","receita":27080.03}, 
+ {"nome":"Higiene e Beleza","receita":7214.30}, 
+ {"nome":"Acessorios e Brinquedos","receita":4739.00}, 
+ {"nome":"Farmacia e Cuidados","receita":1546.50}], "formas" : [{"forma":"cartao_credito","qtd":116,"valor":14474.30}, 
+ {"forma":"pix","qtd":125,"valor":14153.23}, 
+ {"forma":"cartao_debito","qtd":60,"valor":7709.50}, 
+ {"forma":"dinheiro","qtd":34,"valor":4119.09}], "financeiro" : {"recebido" : 33061.98, "a_receber" : 6517.15, "taxas" : 876.99, "a_pagar" : 9150.40}, "receber_mes" : [{"mes":"2026-10","valor":302.11}, 
+ {"mes":"2026-11","valor":4513.42}, 
+ {"mes":"2026-12","valor":1410.87}, 
+ {"mes":"2027-01","valor":290.75}], "pagar_mes" : [{"mes":"2026-10","valor":6650.40}, 
+ {"mes":"2026-11","valor":1500.00}, 
+ {"mes":"2026-12","valor":1000.00}], "estoque_min" : [{"nome":"Bolinha de Borracha Interativa","minimo":15,"disponivel":0}, 
+ {"nome":"Tapete Higienico 30 unidades","minimo":8,"disponivel":6}, 
+ {"nome":"Arranhador para Gatos","minimo":3,"disponivel":2}], "lotes_vencer" : [{"nome":"Petisco Dental Caes 200g","lote":"LOTE-PET-2026-A","validade":"10/11/2026","dias":14,"saldo":12}], "perdas" : {"unidades" : 26, "custo" : 906.30}, "periodo" : {"inicio" : "01/08/2026", "fim" : "27/10/2026"}};
+
+const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const brl0 = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const k = v => v >= 1000 ? 'R$ ' + (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' mil' : brl0(v);
+const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const mesLbl = s => { const [y, m] = s.split('-'); return MES[+m - 1] + '/' + y.slice(2); };
+const diaLbl = s => { const [y, m, d] = s.split('-'); return d + '/' + m; };
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const a in attrs) e.setAttribute(a, attrs[a]);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const txt = (parent, x, y, s, cls, anchor = 'start') => {
+  const t = el('text', { x, y, class: cls, 'text-anchor': anchor }, parent);
+  t.textContent = s;
+  return t;
+};
+// escala com passos redondos: devolve [máximo, passo]
+const escala = v => { const raw = v / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / p;
+  const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; return [Math.ceil(v / step) * step, step]; };
+
+// ---------- tooltip
+const tip = document.getElementById('tip');
+function showTip(evt, title, rows) {
+  tip.replaceChildren();
+  const t = document.createElement('div'); t.className = 't'; t.textContent = title; tip.appendChild(t);
+  rows.forEach(r => {
+    const row = document.createElement('div'); row.className = 'r';
+    const b = document.createElement('b'); b.textContent = r.value;
+    const s = document.createElement('span');
+    if (r.color) { const key = document.createElement('i'); key.className = 'k'; key.style.background = r.color; s.appendChild(key); }
+    s.appendChild(document.createTextNode(r.label));
+    row.appendChild(b); row.appendChild(s); tip.appendChild(row);
+  });
+  const x = Math.min(evt.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  const y = Math.min(evt.clientY + 14, window.innerHeight - tip.offsetHeight - 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px'; tip.style.opacity = 1;
+}
+const hideTip = () => { tip.style.opacity = 0; };
+
+// ---------- tabela
+function table(container, headers, rows, numCols = []) {
+  const t = document.createElement('table');
+  const tr = document.createElement('tr');
+  headers.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (numCols.includes(i)) th.className = 'num'; tr.appendChild(th); });
+  const thead = document.createElement('thead'); thead.appendChild(tr); t.appendChild(thead);
+  const tb = document.createElement('tbody');
+  rows.forEach(r => {
+    const row = document.createElement('tr');
+    r.forEach((c, i) => { const td = document.createElement('td'); if (c instanceof Node) td.appendChild(c); else td.textContent = c; if (numCols.includes(i)) td.className = 'num'; row.appendChild(td); });
+    tb.appendChild(row);
+  });
+  t.appendChild(tb); container.replaceChildren(t);
+}
+document.querySelectorAll('.card .toggle').forEach(b => b.addEventListener('click', () => {
+  const c = b.closest('.card'); c.classList.toggle('show-table');
+  b.textContent = c.classList.contains('show-table') ? 'Ver gráfico' : 'Ver tabela';
+}));
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+});
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// ---------- KPIs
+document.getElementById('periodo').textContent = 'Período: ' + DATA.periodo.inicio + ' a ' + DATA.periodo.fim;
+const K = DATA.kpi;
+const kpis = [
+  ['Faturamento', k(K.faturamento), K.pedidos + ' pedidos concluídos'],
+  ['Ticket médio', brl(K.ticket), 'por pedido'],
+  ['Loja virtual', K.pct_virtual.toLocaleString('pt-BR') + '%', 'dos pedidos'],
+  ['Recompra', K.recompra.toLocaleString('pt-BR') + '%', 'dos ' + K.clientes + ' clientes compraram 2+ vezes'],
+  ['Cancelamentos', K.cancel.toLocaleString('pt-BR') + '%', 'dos pedidos'],
+  ['Perdas de estoque', DATA.perdas.unidades + ' un.', brl(DATA.perdas.custo) + ' a preço de custo'],
+];
+const kd = document.getElementById('kpis');
+kpis.forEach(([l, v, s]) => {
+  const d = document.createElement('div'); d.className = 'kpi';
+  [['lbl', l], ['val', v], ['sub', s]].forEach(([c, t]) => { const e = document.createElement('div'); e.className = c; e.textContent = t; d.appendChild(e); });
+  kd.appendChild(d);
+});
+
+// ---------- linha: faturamento semanal
+function linhas() {
+  const card = document.getElementById('c-semanas');
+  const sem = DATA.semanas.filter(s => s.semana >= '2026-08-03' && s.semana <= '2026-10-12');
+  const W = 1100, H = 300, m = { l: 64, r: 92, t: 14, b: 30 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Faturamento semanal por canal' });
+  const [max, step] = escala(Math.max(...sem.map(s => Math.max(s.fisica, s.virtual))));
+  const x = i => m.l + i * (W - m.l - m.r) / (sem.length - 1);
+  const y = v => H - m.b - v / max * (H - m.t - m.b);
+  for (let i = 0; i <= Math.round(max / step); i++) {
+    const v = step * i;
+    el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: i ? 'gridline' : 'base' }, svg);
+    txt(svg, m.l - 8, y(v) + 4, k(v), 'axis', 'end');
+  }
+  sem.forEach((s, i) => { if (i % 2 === 0) txt(svg, x(i), H - 10, diaLbl(s.semana), 'axis', 'middle'); });
+  const series = [['fisica', '--series-1', 'Loja física'], ['virtual', '--series-2', 'Loja virtual']];
+  // rótulos diretos no fim das linhas, afastados se ficarem próximos
+  const last = sem[sem.length - 1];
+  const ly = series.map(([key]) => y(last[key]));
+  if (Math.abs(ly[0] - ly[1]) < 14) { const mid = (ly[0] + ly[1]) / 2, s0 = ly[0] <= ly[1] ? -1 : 1; ly[0] = mid + s0 * 7; ly[1] = mid - s0 * 7; }
+  series.forEach(([key, color, nome], j) => {
+    const d = sem.map((s, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(s[key]).toFixed(1)).join(' ');
+    el('path', { d, fill: 'none', stroke: `var(${color})`, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+    el('circle', { cx: x(sem.length - 1), cy: y(last[key]), r: 4, fill: `var(${color})`, stroke: 'var(--surface-1)', 'stroke-width': 2 }, svg);
+    txt(svg, x(sem.length - 1) + 10, ly[j] + 4, nome, 'dlabel');
+  });
+  const cross = el('line', { y1: m.t, y2: H - m.b, stroke: 'var(--text-muted)', 'stroke-width': 1, opacity: 0 }, svg);
+  const dots = series.map(([, color]) => el('circle', { r: 4, fill: `var(${color})`, stroke: 'var(--surface-1)', 'stroke-width': 2, opacity: 0 }, svg));
+  const hit = el('rect', { x: m.l - 10, y: m.t, width: W - m.l - m.r + 20, height: H - m.t - m.b, class: 'hit', tabindex: 0 }, svg);
+  const move = evt => {
+    const r = svg.getBoundingClientRect();
+    const px = (evt.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(sem.length - 1, Math.round((px - m.l) / ((W - m.l - m.r) / (sem.length - 1)))));
+    const s = sem[i];
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('opacity', .6);
+    series.forEach(([key], j) => { dots[j].setAttribute('cx', x(i)); dots[j].setAttribute('cy', y(s[key])); dots[j].setAttribute('opacity', 1); });
+    const fim = new Date(s.semana + 'T12:00'); fim.setDate(fim.getDate() + 6);
+    showTip(evt, 'Semana de ' + diaLbl(s.semana) + ' a ' + String(fim.getDate()).padStart(2, '0') + '/' + String(fim.getMonth() + 1).padStart(2, '0'), [
+      { value: brl(s.fisica), label: 'Loja física', color: css('--series-1') },
+      { value: brl(s.virtual), label: 'Loja virtual', color: css('--series-2') },
+      { value: String(s.pedidos), label: 'pedidos' }]);
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerleave', () => { hideTip(); cross.setAttribute('opacity', 0); dots.forEach(d => d.setAttribute('opacity', 0)); });
+  card.querySelector('.chart').appendChild(svg);
+  table(card.querySelector('.tbl'), ['Semana', 'Loja física', 'Loja virtual', 'Total', 'Pedidos'],
+    sem.map(s => [diaLbl(s.semana), brl(s.fisica), brl(s.virtual), brl(s.fisica + s.virtual), s.pedidos]), [1, 2, 3, 4]);
+}
+
+// ---------- barras horizontais (uma série)
+function barrasH(id, itens, rotulo, valor, fmt, extra) {
+  const card = document.getElementById(id);
+  const W = 520, bh = 22, gap = 10, m = { l: 210, r: 78, t: 4, b: 4 };
+  const H = m.t + m.b + itens.length * (bh + gap) - gap;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': card.querySelector('h2').textContent });
+  const max = Math.max(...itens.map(valor));
+  const x = v => v / max * (W - m.l - m.r);
+  const bars = [];
+  itens.forEach((it, i) => {
+    const y0 = m.t + i * (bh + gap);
+    txt(svg, m.l - 10, y0 + bh / 2 + 4, rotulo(it), 'blabel', 'end');
+    const w = Math.max(2, x(valor(it)));
+    const r = Math.min(4, w / 2);
+    const d = `M${m.l} ${y0} H${m.l + w - r} Q${m.l + w} ${y0} ${m.l + w} ${y0 + r} V${y0 + bh - r} Q${m.l + w} ${y0 + bh} ${m.l + w - r} ${y0 + bh} H${m.l} Z`;
+    const b = el('path', { d, fill: 'var(--bar)', class: 'bar' }, svg);
+    bars.push(b);
+    txt(svg, m.l + w + 8, y0 + bh / 2 + 4, fmt(valor(it)), 'dlabel');
+    const hit = el('rect', { x: 0, y: y0 - gap / 2, width: W, height: bh + gap, class: 'hit', tabindex: 0 }, svg);
+    const on = evt => { bars.forEach(o => o.classList.toggle('dim', o !== b)); showTip(evt, rotulo(it), extra(it)); };
+    hit.addEventListener('pointermove', on);
+    hit.addEventListener('pointerleave', () => { bars.forEach(o => o.classList.remove('dim')); hideTip(); });
+  });
+  el('line', { x1: m.l, x2: m.l, y1: 0, y2: H, class: 'base' }, svg);
+  card.querySelector('.chart').appendChild(svg);
+}
+
+function produtos() {
+  const P = DATA.produtos;
+  barrasH('c-produtos', P, p => p.nome, p => p.receita, k,
+    p => [{ value: brl(p.receita), label: 'receita' }, { value: p.unidades + ' un.', label: 'vendidas' }, { value: brl(p.margem), label: 'margem bruta' }]);
+  table(document.querySelector('#c-produtos .tbl'), ['Produto', 'Unidades', 'Receita', 'Margem bruta'],
+    P.map(p => [p.nome, p.unidades, brl(p.receita), brl(p.margem)]), [1, 2, 3]);
+}
+function categorias() {
+  const C = DATA.categorias; const tot = C.reduce((a, c) => a + c.receita, 0);
+  barrasH('c-categorias', C, c => c.nome, c => c.receita, v => (v / tot * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + '%',
+    c => [{ value: brl(c.receita), label: 'receita' }, { value: (c.receita / tot * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%', label: 'do total' }]);
+  table(document.querySelector('#c-categorias .tbl'), ['Categoria', 'Receita', '% do total'],
+    C.map(c => [c.nome, brl(c.receita), (c.receita / tot * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%']), [1, 2]);
+}
+function formas() {
+  const nomes = { pix: 'PIX', cartao_credito: 'Cartão de crédito', cartao_debito: 'Cartão de débito', dinheiro: 'Dinheiro' };
+  const F = DATA.formas; const tot = F.reduce((a, c) => a + c.valor, 0);
+  barrasH('c-formas', F, f => nomes[f.forma], f => f.valor, k,
+    f => [{ value: brl(f.valor), label: 'valor autorizado' }, { value: String(f.qtd), label: 'pagamentos' }, { value: (f.valor / tot * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%', label: 'do total' }]);
+  table(document.querySelector('#c-formas .tbl'), ['Forma', 'Pagamentos', 'Valor', '% do valor'],
+    F.map(f => [nomes[f.forma], f.qtd, brl(f.valor), (f.valor / tot * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%']), [1, 2, 3]);
+}
+
+// ---------- barras agrupadas: fluxo de caixa
+function fluxo() {
+  const card = document.getElementById('c-fluxo');
+  const meses = [...new Set([...DATA.receber_mes.map(r => r.mes), ...DATA.pagar_mes.map(r => r.mes)])].sort();
+  const get = (arr, mes) => (arr.find(r => r.mes === mes) || { valor: 0 }).valor;
+  const rows = meses.map(mes => ({ mes, rec: get(DATA.receber_mes, mes), pag: get(DATA.pagar_mes, mes) }));
+  const W = 520, H = 260, m = { l: 62, r: 8, t: 18, b: 28 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Fluxo de caixa previsto' });
+  const [max, step] = escala(Math.max(...rows.map(r => Math.max(r.rec, r.pag))));
+  const y = v => H - m.b - v / max * (H - m.t - m.b);
+  for (let i = 0; i <= Math.round(max / step); i++) {
+    const v = step * i;
+    el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: i ? 'gridline' : 'base' }, svg);
+    txt(svg, m.l - 8, y(v) + 4, k(v), 'axis', 'end');
+  }
+  const gw = (W - m.l - m.r) / rows.length, bw = Math.min(34, gw * 0.32);
+  const marks = [];
+  rows.forEach((r, i) => {
+    const cx = m.l + gw * i + gw / 2;
+    txt(svg, cx, H - 8, mesLbl(r.mes), 'axis', 'middle');
+    [['rec', '--series-1', -1], ['pag', '--series-2', 1]].forEach(([key, color, side]) => {
+      const v = r[key]; if (!v) return;
+      const x0 = cx + (side < 0 ? -bw - 1 : 1), y0 = y(v), h = H - m.b - y0, rr = Math.min(4, h / 2);
+      const d = `M${x0} ${H - m.b} V${y0 + rr} Q${x0} ${y0} ${x0 + rr} ${y0} H${x0 + bw - rr} Q${x0 + bw} ${y0} ${x0 + bw} ${y0 + rr} V${H - m.b} Z`;
+      marks.push(el('path', { d, fill: `var(${color})`, class: 'bar' }, svg));
+    });
+    const hit = el('rect', { x: cx - gw / 2, y: m.t, width: gw, height: H - m.t - m.b, class: 'hit', tabindex: 0 }, svg);
+    hit.addEventListener('pointermove', evt => showTip(evt, mesLbl(r.mes), [
+      { value: brl(r.rec), label: 'a receber', color: css('--series-1') },
+      { value: brl(r.pag), label: 'a pagar', color: css('--series-2') },
+      { value: brl(r.rec - r.pag), label: 'saldo previsto' }]));
+    hit.addEventListener('pointerleave', hideTip);
+  });
+  card.querySelector('.chart').appendChild(svg);
+  table(card.querySelector('.tbl'), ['Mês', 'A receber (líquido)', 'A pagar', 'Saldo previsto'],
+    rows.map(r => [mesLbl(r.mes), brl(r.rec), brl(r.pag), brl(r.rec - r.pag)]), [1, 2, 3]);
+}
+
+// ---------- alertas de estoque
+function estoque() {
+  const box = document.getElementById('c-estoque').querySelector('.chart');
+  const g = document.createElement('div'); g.style.display = 'grid'; g.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))'; g.style.gap = '18px';
+  const mk = (titulo, head, rows, nums) => {
+    const d = document.createElement('div');
+    const h = document.createElement('div'); h.style.fontWeight = 600; h.style.fontSize = '13px'; h.style.marginBottom = '4px'; h.textContent = titulo;
+    const t = document.createElement('div'); d.appendChild(h); d.appendChild(t); table(t, head, rows, nums); g.appendChild(d);
+  };
+  const st = (cls, icon, label) => { const s = document.createElement('span'); s.className = 'status ' + cls; s.textContent = icon + ' ' + label; return s; };
+  mk('Produtos no estoque mínimo ou abaixo', ['Produto', 'Disponível', 'Mínimo', 'Situação'],
+    DATA.estoque_min.map(e => [e.nome, e.disponivel, e.minimo, e.disponivel === 0 ? st('crit', '●', 'Sem estoque') : st('warn', '▲', 'Abaixo do mínimo')]), [1, 2]);
+  mk('Lotes que vencem em até 30 dias', ['Produto', 'Lote', 'Validade', 'Saldo', 'Situação'],
+    DATA.lotes_vencer.map(l => [l.nome, l.lote, l.validade, l.saldo, st('warn', '▲', 'Vence em ' + l.dias + ' dias')]), [3]);
+  box.appendChild(g);
+}
+
+linhas(); produtos(); categorias(); fluxo(); formas(); estoque();
+</script>
+</body>
+</html>
