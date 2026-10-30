@@ -1,0 +1,57 @@
+NOTICE:  database "sabor_ponto" does not exist, skipping
+DROP DATABASE
+You are now connected to database "sabor_ponto" as user "postgres".
+[T1] preço negativo (CHECK)
+ERROR:  new row for relation "produto" violates check constraint "produto_preco_check"
+DETAIL:  Failing row contains (8, Teste, -5.00, 1, 1).
+[T2] item com produto inexistente (FK)
+ERROR:  insert or update on table "item_pedido" violates foreign key constraint "item_pedido_id_produto_fkey"
+DETAIL:  Key (id_produto)=(99) is not present in table "produto".
+[T3] mesmo produto duas vezes no pedido (PK composta)
+ERROR:  duplicate key value violates unique constraint "item_pedido_pkey"
+DETAIL:  Key (id_pedido, id_produto)=(1, 1) already exists.
+[T4] CPF repetido (UNIQUE)
+ERROR:  duplicate key value violates unique constraint "cliente_cpf_key"
+DETAIL:  Key (cpf)=(12312312300) already exists.
+[T5] quantidade zero (CHECK)
+ERROR:  new row for relation "item_pedido" violates check constraint "item_pedido_quantidade_check"
+DETAIL:  Failing row contains (4, 5, 0, 11.00).
+[C1] Produtos acima de R$ 15,00, do mais caro para o mais barato
+           nome            | preco  
+---------------------------+--------
+ Prensa Francesa 350ml     | 129.90
+ Café Etiópia 250g         |  54.90
+ Café Bourbon Amarelo 250g |  42.00
+ Croissant de Amêndoas     |  16.00
+ Cappuccino Artesanal      |  15.50
+(5 rows)
+
+[C2] Produto e categoria (INNER JOIN)
+          produto          |      categoria      
+---------------------------+---------------------
+ Cappuccino Artesanal      | Bebidas Quentes
+ Espresso Duplo            | Bebidas Quentes
+ Café Bourbon Amarelo 250g | Grãos
+ Café Etiópia 250g         | Grãos
+ Croissant de Amêndoas     | Lanches
+ Pão de Queijo Recheado    | Lanches
+ Prensa Francesa 350ml     | Métodos de Extração
+(7 rows)
+
+[C3] Pedido, data, cliente e valor total
+ id_pedido |     data_pedido     |        cliente        | valor_total 
+-----------+---------------------+-----------------------+-------------
+         1 | 2026-10-26 08:15:00 | Juliana Prado         |       65.90
+         2 | 2026-10-26 09:40:00 | Marcos Vinicius Teles |       50.00
+         3 | 2026-10-27 16:05:00 | Juliana Prado         |      171.90
+(3 rows)
+
+[C3b] Variação com LEFT JOIN: inclui a venda sem cadastro de fidelidade
+ id_pedido |     data_pedido     |        cliente        | valor_total 
+-----------+---------------------+-----------------------+-------------
+         1 | 2026-10-26 08:15:00 | Juliana Prado         |       65.90
+         2 | 2026-10-26 09:40:00 | Marcos Vinicius Teles |       50.00
+         3 | 2026-10-27 16:05:00 | Juliana Prado         |      171.90
+         4 | 2026-10-27 17:30:00 | (sem cadastro)        |       16.00
+(4 rows)
+

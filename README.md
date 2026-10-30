@@ -1462,7 +1462,7 @@ Os relacionamentos N:N entre Pedido e Produto e entre Compra e Produto continuam
 
 A partir daqui está a entrega final. O modelo conceitual das seções 1 a 18 (já revisado após a devolutiva) foi convertido em modelo lógico, normalizado até a 3FN, implementado em PostgreSQL 16, povoado com uma massa de dados de teste e consultado para produzir informação gerencial. Cada seção resume a decisão tomada e aponta o arquivo onde está o detalhe.
 
-**Teste de consistência:** em 29/10/2026 todos os scripts foram executados, na ordem da seção 22, em um banco vazio. As 16 tabelas, as 7 visões e os 5 gatilhos foram criados sem erro, a massa de dados foi carregada, os 23 comandos que o banco deve recusar (T01 a T23) terminaram em `ERROR`, os testes de UPDATE e DELETE foram aceitos e as 10 consultas de auditoria retornaram 0 linhas. A saída completa está em [`evidencias/saida_execucao_completa.txt`](evidencias/saida_execucao_completa.txt).
+**Teste de consistência:** em 30/10/2026 todos os scripts foram executados, na ordem da seção 22, em um banco vazio. As 16 tabelas, as 7 visões e os 5 gatilhos foram criados sem erro, as duas massas de dados (cenários e histórico) foram carregadas, os 23 comandos que o banco deve recusar (T01 a T23) terminaram em `ERROR`, os testes de UPDATE e DELETE foram aceitos e as 10 consultas de auditoria retornaram 0 linhas. A saída completa está em [`evidencias/saida_execucao_completa.txt`](evidencias/saida_execucao_completa.txt).
 
 ## 19. Revisão do modelo conceitual na entrega final
 
@@ -1560,7 +1560,8 @@ Pré-requisito: PostgreSQL 16 com o `psql` (o DDL usa `\c` para se conectar ao b
 
 ```bash
 psql -U postgres -f sql/ddl/petly_club_ddl_limpo.sql                                   # 1. cria o banco e a estrutura
-psql -U postgres -d petly_club -f "sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql"   # 2. massa de dados
+psql -U postgres -d petly_club -f "sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql"   # 2a. massa de dados (cenários)
+psql -U postgres -d petly_club -f sql/dados/Massa_Historico_Vendas_ERP_Petly_Club.sql     # 2b. massa histórica (opcional)
 psql -U postgres -d petly_club -a -f sql/testes/testes_integridade.sql                 # 3. testes de integridade, UPDATE e DELETE
 psql -U postgres -d petly_club -f sql/consultas/consultas_gerenciais.sql               # 4. consultas gerenciais
 psql -U postgres -d petly_club -f sql/auditoria/consultas_auditoria.sql                # 5. consultas de auditoria
@@ -1569,15 +1570,20 @@ psql -U postgres -d petly_club -f sql/auditoria/consultas_auditoria.sql         
 | Comando exigido no manual | Onde está |
 |---|---|
 | CREATE DATABASE, CREATE TABLE, PK, FK, NOT NULL, UNIQUE, CHECK, DEFAULT | `sql/ddl/petly_club_ddl_limpo.sql` |
-| INSERT | `sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql` |
+| INSERT | `sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql` e `sql/dados/Massa_Historico_Vendas_ERP_Petly_Club.sql` |
 | UPDATE e DELETE | `sql/testes/testes_integridade.sql` (U01 a U03 e D01, dentro de `BEGIN ... ROLLBACK`) |
 | SELECT e JOIN | `sql/consultas/consultas_gerenciais.sql` e `sql/auditoria/consultas_auditoria.sql` |
 
 ## 23. Massa de dados
 
-A massa de dados foi gerada com auxílio de IA e validada pela equipe executando o script no banco: todas as PKs, FKs, CHECKs e gatilhos foram respeitados na carga. Ela não busca volume, e sim cobrir os oito cenários da seção 17.1 com dados coerentes entre si (data de referência 27/10/2026): 6 clientes, 4 funcionários, 3 fornecedores, 4 categorias, 6 produtos, 11 lotes (incluindo lote vencido e lote perto de vencer), 6 pedidos nos dois canais (pagos, enviado, retirado e dois cancelamentos de tipos diferentes), 5 compras (uma recebida em partes), 28 movimentações de estoque, crédito em 3x e pagamento parcial de fornecedor.
+A massa de dados tem duas partes, as duas geradas com auxílio de IA e validadas pela equipe executando os scripts no banco: todas as PKs, FKs, CHECKs e gatilhos foram respeitados na carga.
 
-- Script: [`sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql`](sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql)
+**Massa de cenários.** Não busca volume, e sim cobrir os oito cenários da seção 17.1 com dados coerentes entre si (data de referência 27/10/2026): 6 clientes, 4 funcionários, 3 fornecedores, 4 categorias, 6 produtos, 11 lotes (incluindo lote vencido e lote perto de vencer), 6 pedidos nos dois canais (pagos, enviado, retirado e dois cancelamentos de tipos diferentes), 5 compras (uma recebida em partes), 28 movimentações de estoque, crédito em 3x e pagamento parcial de fornecedor.
+
+**Massa histórica.** Dá volume para as consultas gerenciais e para o BI: vendas de 01/08 a 19/10/2026, antes dos cenários, sem alterar nenhum registro da massa de cenários. São 30 clientes e 8 produtos novos, 6 compras, 26 lotes, 337 pedidos nos dois canais (com entregas, retiradas, PIX não pago, descontos autorizados e crédito em até 3x), 741 movimentações de estoque e 395 contas a receber. O script que a gera simula o estoque dia a dia, então toda saída respeita FEFO (RN20), a reserva da loja virtual (RN21) e o saldo dos lotes; os lotes históricos vencem antes dos lotes dos cenários e terminam zerados em 19/10, para não mudar o resultado deles. Depois da carga, os testes de integridade continuam com o resultado esperado e as 10 consultas de auditoria continuam retornando 0 linhas.
+
+- Massa de cenários: [`sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql`](sql/dados/Massa_de_Dados_Completa_-_ERP_Petly_Club.sql)
+- Massa histórica: [`sql/dados/Massa_Historico_Vendas_ERP_Petly_Club.sql`](sql/dados/Massa_Historico_Vendas_ERP_Petly_Club.sql), gerada por [`sql/dados/gerar_massa_historico.py`](sql/dados/gerar_massa_historico.py) (semente fixa: gera sempre o mesmo resultado)
 - Prompts utilizados: [`sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf`](sql/dados/Prompts_Utilizados_ERP_Petly_Club.pdf)
 
 **Testes de integridade:** 23 comandos que o banco deve recusar (T01 a T23, um para cada restrição relevante) e 4 operações que deve aceitar (U01 a U03 e D01). Script em [`sql/testes/testes_integridade.sql`](sql/testes/testes_integridade.sql) e evidências em [`evidencias/Testes_de_Integridade_Petly_Club.pdf`](evidencias/Testes_de_Integridade_Petly_Club.pdf).
@@ -1599,7 +1605,7 @@ Cada consulta parte de uma pergunta da gerência e termina em uma decisão.
 
 ## 25. Consultas de auditoria
 
-As consultas de auditoria procuram situações que o banco não impede sozinho e que precisam de conferência. Na massa de dados do grupo, todas retornam 0 linhas.
+As consultas de auditoria procuram situações que o banco não impede sozinho e que precisam de conferência. Com as duas massas de dados carregadas, todas retornam 0 linhas. O script também traz, para cada consulta, um teste que insere um erro proposital, confirma que a consulta o encontra e desfaz tudo com `ROLLBACK`.
 
 | # | O que verifica |
 |---|---|
@@ -1623,9 +1629,10 @@ Nada desta seção está implementado; ela mostra o que o modelo já permite ext
 
 - **Indicadores:** faturamento por canal, ticket médio, produtos mais vendidos, vendas por categoria, margem bruta, taxa de cancelamento, perdas por motivo, giro de estoque, autorizado × recebido, valores a receber e contas a pagar, prazo médio de entrega e frequência de recompra.
 - **BI:** três painéis (Gerência, Estoque e Financeiro), cada gráfico ligado ao indicador e à decisão que apoia.
+- **Dashboard funcionando:** [`docs/bi-ia/dashboard_petly_club.html`](docs/bi-ia/dashboard_petly_club.html) (abrir no navegador, funciona sem internet). Mostra faturamento, ticket médio, recompra, cancelamentos e perdas; faturamento semanal por canal; produtos e categorias que mais faturam; fluxo de caixa previsto (a receber × a pagar); formas de pagamento; e alertas de estoque mínimo e de validade. Os números saem do banco pela consulta [`docs/bi-ia/dados_dashboard.sql`](docs/bi-ia/dados_dashboard.sql), com as duas massas de dados carregadas.
 - **IA 1 — Previsão de demanda de ração e sugestão de compra:** usa o histórico de `item_pedido`, o saldo disponível dos lotes e o prazo do fornecedor para estimar quando o produto acaba e quando comprar.
 - **IA 2 — Alerta de lotes com risco de vencer sem vender:** cruza a validade do lote com o ritmo de vendas do produto para agir antes da perda.
-- **Limite reconhecido:** a massa de dados cobre poucos dias; tendências e previsões só ficam confiáveis depois de alguns meses de vendas reais registradas.
+- **Limite reconhecido:** a massa histórica cobre cerca de três meses de dados de teste; tendências e previsões confiáveis exigem mais tempo de vendas reais registradas.
 
 Documento completo: [`docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf`](docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf)
 
@@ -1639,6 +1646,7 @@ Documento completo: [`docs/bi-ia/Analise_de_Dados_BI_e_IA_Petly_Club.pdf`](docs/
 | 15/10/2026 | Primeiro DDL e testes em sala (aula 9), em [`diarios-de-bordo/aula9_sql/`](diarios-de-bordo/aula9_sql/) |
 | 26/10/2026 | Revisão da primeira entrega conforme a devolutiva |
 | 27 e 28/10/2026 | Modelo lógico, normalização, DDL, massa de dados, testes, consultas, auditoria, BI e dicionário de dados |
+| 29 e 30/10/2026 | Revisão final: README da entrega final, DER com os ajustes [A2] e [A3], massa histórica de vendas e dashboard |
 
 O histórico de commits mostra a contribuição de cada integrante na sua parte. A divisão de responsabilidades e a participação em cada aula estão nos [diários de bordo](diarios-de-bordo/Diarios_de_Bordo_Grupo7.pdf).
 
@@ -1681,7 +1689,8 @@ A entrega final transformou o modelo conceitual da Petly Club em um banco de dad
 | Normalização | [`docs/normalizacao/Normalizacao_Petly_Club.pdf`](docs/normalizacao/Normalizacao_Petly_Club.pdf) |
 | Dicionário de dados | [`docs/dicionario-dados/Dicionario_de_Dados_Petly_Club_Grupo7.pdf`](docs/dicionario-dados/Dicionario_de_Dados_Petly_Club_Grupo7.pdf) |
 | Script DDL | [`sql/ddl/petly_club_ddl_limpo.sql`](sql/ddl/petly_club_ddl_limpo.sql) |
-| Massa de dados e prompts | [`sql/dados/`](sql/dados/) |
+| Massa de dados (cenários e histórico) e prompts | [`sql/dados/`](sql/dados/) |
+| Dashboard | [`docs/bi-ia/dashboard_petly_club.html`](docs/bi-ia/dashboard_petly_club.html) |
 | Testes de integridade | [`sql/testes/testes_integridade.sql`](sql/testes/testes_integridade.sql) · [`evidencias/Testes_de_Integridade_Petly_Club.pdf`](evidencias/Testes_de_Integridade_Petly_Club.pdf) |
 | Consultas gerenciais | [`sql/consultas/consultas_gerenciais.sql`](sql/consultas/consultas_gerenciais.sql) · [`consultas_gerenciais.md`](sql/consultas/consultas_gerenciais.md) |
 | Consultas de auditoria | [`sql/auditoria/consultas_auditoria.sql`](sql/auditoria/consultas_auditoria.sql) · [`docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf`](docs/auditoria/Consultas_de_Auditoria_Petly_Club.pdf) |
@@ -1695,3 +1704,7 @@ A entrega final transformou o modelo conceitual da Petly Club em um banco de dad
   - [`diarios-de-bordo/Diario_Auditoria_24-09_Grupo7.pdf`](diarios-de-bordo/Diario_Auditoria_24-09_Grupo7.pdf)
   - [`diarios-de-bordo/Diario_Aula8_Normalizacao_01-10_Grupo7.pdf`](diarios-de-bordo/Diario_Aula8_Normalizacao_01-10_Grupo7.pdf)
   - [`diarios-de-bordo/Diario_Aula9_DDL_15-10_Grupo7.pdf`](diarios-de-bordo/Diario_Aula9_DDL_15-10_Grupo7.pdf), com o script e os testes em [`diarios-de-bordo/aula9_sql/`](diarios-de-bordo/aula9_sql/)
+- Preenchidos em 30/10/2026:
+  - [`diarios-de-bordo/Diario_Aula11_Integridade_Grupo7.pdf`](diarios-de-bordo/Diario_Aula11_Integridade_Grupo7.pdf) — ALTER, UPDATE, DELETE e DROP executados numa cópia do banco do projeto
+  - [`diarios-de-bordo/Diario_Revisao_Grupo7.pdf`](diarios-de-bordo/Diario_Revisao_Grupo7.pdf) — revisão para a prova e preparação da apresentação
+  - [`diarios-de-bordo/Laboratorio_Pratico_Integrado_Grupo7.pdf`](diarios-de-bordo/Laboratorio_Pratico_Integrado_Grupo7.pdf) — caso Sabor & Ponto, com o script em [`diarios-de-bordo/laboratorio_sql/`](diarios-de-bordo/laboratorio_sql/)
